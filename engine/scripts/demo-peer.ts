@@ -133,3 +133,6 @@ socket.on("events", async (events: any[], cb?: (r: { eventIds: string[] }) => vo
     console.log("reply sent", ack);
   }
 });
+
+// Keep the process alive across engine restarts (the socket reconnects by itself).
+setInterval(() => {}, 1 << 30);

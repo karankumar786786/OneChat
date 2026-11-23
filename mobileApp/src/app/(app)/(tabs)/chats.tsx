@@ -1,7 +1,9 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useState } from "react";
+import { syncConnections } from "@/session";
+import { syncGroups } from "@/realtime/socket";
 import { useChats } from "@/db/hooks";
 import { useRealtime } from "@/realtime/store";
 import { Avatar, Empty } from "@/ui/components";
@@ -16,6 +18,12 @@ export default function Chats() {
   const connected = useRealtime((s) => s.connected);
   const router = useRouter();
   const navigation = useNavigation();
+  const [refreshing, setRefreshing] = useState(false);
+  async function refresh() {
+    setRefreshing(true);
+    await Promise.allSettled([syncConnections(), syncGroups()]);
+    setRefreshing(false);
+  }
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -38,6 +46,7 @@ export default function Chats() {
       <FlatList
         data={chats}
         keyExtractor={(c) => c.peerId}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         contentContainerStyle={chats.length ? undefined : { flex: 1 }}
         ListEmptyComponent={<Empty title="No chats yet" subtitle="Tap the search icon to find someone by username, or the people icon to start a group." />}
         ItemSeparatorComponent={() => <View style={styles.sep} />}

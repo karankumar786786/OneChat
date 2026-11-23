@@ -1,4 +1,5 @@
 import { api, unwrap, type Schemas } from "../api/client";
+import { fetchWithTimeout } from "../lib/fetch";
 
 export interface PickedFile {
   uri: string;
@@ -19,7 +20,7 @@ export async function uploadFile(file: PickedFile, purpose: "chat" | "status" | 
   // S3 requires the file to be the last field.
   form.append("file", { uri: file.uri, name: file.name, type: file.mime } as unknown as Blob);
 
-  const res = await fetch(slot.upload.url, { method: "POST", body: form });
+  const res = await fetchWithTimeout(slot.upload.url, { method: "POST", body: form }, 120_000);
   if (!res.ok) throw new Error(`Upload failed (${res.status})`);
 
   return unwrap(api.POST("/files/{id}/complete", { params: { path: { id: slot.file.id } } }));

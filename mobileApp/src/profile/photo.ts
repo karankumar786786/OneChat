@@ -16,6 +16,7 @@ export async function pickSquarePhoto(): Promise<PickedFile | null> {
 export function uploadErrorMessage(e: unknown) {
   if (e instanceof ApiError && e.code === "STORAGE_NOT_CONFIGURED") return "Photo uploads aren't set up on the server yet (S3 bucket missing).";
   if (e instanceof ApiError) return e.message;
+  if (e instanceof Error && e.message.startsWith("No answer")) return `${e.message}. Is the engine running and reachable from this device?`;
   return "Upload failed. Check your connection and that the S3 bucket and keys are set on the server.";
 }
 

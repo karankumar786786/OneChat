@@ -16,7 +16,10 @@ Clients in other languages can be generated from or written against those two fi
 ## Features (v1)
 
 - Register and log in with email and password; one active device per account.
-- Unique usernames, with prefix search.
+- **Profiles:**
+  - name, unique username, About line and profile photo (DP, stored in S3);
+  - set up right after sign-up;
+  - search by name or @username.
 - Connections: chatting with someone connects you. Connections see each other's online status / last seen (Redis) and statuses.
 - Realtime 1:1 chat over WebSocket:
   - ✓ sent, ✓✓ delivered, blue ✓✓ read;
@@ -39,7 +42,13 @@ Clients in other languages can be generated from or written against those two fi
   - group typing, reactions, reply and forward;
   - admins can delete anyone's message;
   - system lines ("@a added @b").
+- **Contact info screen** (like WhatsApp), opened by tapping a chat header, a group member, a sender's name or a chat-list avatar:
+  - DP (tap for full screen), name, @username, About, last seen;
+  - Message and Share buttons;
+  - groups in common;
+  - block and clear chat.
 - Block users, and push notifications (Expo push) when the app is closed.
+- **Quality-of-life:** date separators in chats, Copy, full-screen image viewer, and pull-to-refresh.
 
 Audio and video calls are planned for later. The `call:*` socket namespace is reserved for WebRTC signalling.
 

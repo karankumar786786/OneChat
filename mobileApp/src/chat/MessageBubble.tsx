@@ -41,15 +41,20 @@ export function MessageBubble({ message: m, replied, replyName, sender, showSend
 
   return (
     <View style={[styles.wrap, mine ? styles.right : styles.left, reactions ? { marginBottom: space(3) } : null]}>
-      <Pressable onLongPress={onLongPress} delayLongPress={250} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
+      <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
         {senderLabel ? (
-          <Text
-            style={[styles.sender, { color: nameColor(m.senderId ?? "") }]}
-            onPress={m.senderId && onSenderPress ? () => onSenderPress(m.senderId!) : undefined}
+          // Its own button (not nested text) so it is tappable and reachable with VoiceOver.
+          <Pressable
+            disabled={!m.senderId || !onSenderPress}
+            onPress={() => m.senderId && onSenderPress?.(m.senderId)}
+            accessibilityRole="button"
+            accessibilityLabel={`Open profile of ${senderLabel}`}
+            hitSlop={6}
           >
-            {senderLabel}
-          </Text>
+            <Text style={[styles.sender, { color: nameColor(m.senderId ?? "") }]}>{senderLabel}</Text>
+          </Pressable>
         ) : null}
+        <Pressable onLongPress={onLongPress} delayLongPress={250} style={{ gap: 4 }}>
         {m.forwarded && !m.deleted ? (
           <View style={styles.forwarded}>
             <Ionicons name="arrow-redo" size={12} color={colors.muted} />
@@ -76,7 +81,8 @@ export function MessageBubble({ message: m, replied, replyName, sender, showSend
           <Text style={styles.time}>{timeLabel(m.sentAt)}</Text>
           {mine ? <Ticks tick={m.tick} /> : null}
         </View>
-      </Pressable>
+        </Pressable>
+      </View>
       {reactions ? (
         <View style={[styles.reactions, mine ? { right: space(2) } : { left: space(2) }]}>
           <Text style={{ fontSize: 13 }}>{reactions}</Text>

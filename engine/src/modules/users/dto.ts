@@ -43,7 +43,13 @@ export async function avatarUrls(fileIds: string[]): Promise<Map<string, string>
   const map = new Map<string, string>();
   if (!fileIds.length || !storageConfigured()) return map;
   const files = await prisma.file.findMany({ where: { id: { in: fileIds }, state: "ready" }, select: { id: true, key: true } });
-  await Promise.all(files.map(async (f) => map.set(f.id, await presignDownload(f.key, null, AVATAR_URL_TTL_SECONDS))));
+  // A signing failure (e.g. missing credentials) just means "no photo", never a failed request.
+  await Promise.all(
+    files.map(async (f) => {
+      const url = await presignDownload(f.key, null, AVATAR_URL_TTL_SECONDS).catch(() => null);
+      if (url) map.set(f.id, url);
+    }),
+  );
   return map;
 }
 

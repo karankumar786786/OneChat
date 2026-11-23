@@ -14,7 +14,8 @@ import { api } from "@/api/client";
 import { useAuth } from "@/auth/store";
 import { Avatar } from "@/ui/components";
 import { colors, radius, space } from "@/ui/theme";
-import { lastSeenLabel } from "@/lib/format";
+import { dayLabel, lastSeenLabel, sameDay } from "@/lib/format";
+import * as Clipboard from "expo-clipboard";
 import type { GroupMemberRow, MessageRow } from "@/db/types";
 import { getDb } from "@/db";
 import { deleteChat, deleteChatHistory } from "@/db/queries";
@@ -210,7 +211,17 @@ export default function ChatScreen() {
         data={messages}
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ padding: space(3), gap: space(1) }}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => {
+          // The list is newest-first and inverted, so the next item is the older one.
+          const older = messages[index + 1];
+          const showDay = !older || !sameDay(older.sentAt, item.sentAt);
+          return (
+          <View>
+          {showDay ? (
+            <View style={styles.dayChip}>
+              <Text style={styles.dayText}>{dayLabel(item.sentAt)}</Text>
+            </View>
+          ) : null}
           <MessageBubble
             message={item}
             replied={item.replyTo ? byId.get(item.replyTo) : undefined}
@@ -221,7 +232,9 @@ export default function ChatScreen() {
             myId={myId}
             onLongPress={() => item.kind !== "system" && setSelected(item)}
           />
-        )}
+          </View>
+          );
+        }}
       />
 
       {!isGroup && blocked ? (
@@ -276,6 +289,9 @@ export default function ChatScreen() {
                 </View>
               ) : null}
               {!selected.deleted && canSend ? <MenuItem icon="arrow-undo" label="Reply" onPress={() => { setReplyTo(selected); closeMenu(); }} /> : null}
+              {!selected.deleted && selected.text ? (
+                <MenuItem icon="copy-outline" label="Copy" onPress={() => { void Clipboard.setStringAsync(selected.text ?? ""); closeMenu(); }} />
+              ) : null}
               {!selected.deleted && selected.tick !== "pending" && selected.tick !== "failed" ? (
                 <MenuItem icon="arrow-redo" label="Forward" onPress={() => { closeMenu(); router.push({ pathname: "/forward", params: { messageId: selected.id } }); }} />
               ) : null}
@@ -347,6 +363,8 @@ const styles = StyleSheet.create({
   noticeText: { color: colors.muted, textAlign: "center" },
   mentions: { backgroundColor: colors.bg, borderRadius: radius.md, paddingVertical: space(1) },
   mentionRow: { flexDirection: "row", alignItems: "center", gap: space(2), paddingHorizontal: space(3), paddingVertical: space(2) },
+  dayChip: { alignSelf: "center", backgroundColor: "#E4E6EE", borderRadius: radius.pill, paddingHorizontal: space(3), paddingVertical: 4, marginVertical: space(2) },
+  dayText: { fontSize: 12, fontWeight: "600", color: colors.muted },
   backdrop: { flex: 1, backgroundColor: "rgba(10,12,20,0.35)", justifyContent: "center", padding: space(6) },
   menu: { backgroundColor: colors.card, borderRadius: radius.lg, paddingVertical: space(2), overflow: "hidden" },
   reactRow: { flexDirection: "row", justifyContent: "space-around", paddingHorizontal: space(2), paddingBottom: space(2), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },

@@ -2,12 +2,13 @@ import createClient, { type Middleware } from "openapi-fetch";
 import type { paths, components } from "./schema";
 import { API_BASE } from "../config";
 import { useAuth } from "../auth/store";
+import { fetchWithTimeout } from "../lib/fetch";
 
 export type Schemas = components["schemas"];
 export type PublicUser = Schemas["PublicUser"];
 export type Me = Schemas["Me"];
 
-export const api = createClient<paths>({ baseUrl: API_BASE });
+export const api = createClient<paths>({ baseUrl: API_BASE, fetch: (req: Request) => fetchWithTimeout(req) });
 
 const pending = new Map<string, Request>();
 
@@ -37,7 +38,7 @@ const auth: Middleware = {
       if (token) {
         const retry = new Request(original, { headers: new Headers(original.headers) });
         retry.headers.set("Authorization", `Bearer ${token}`);
-        const res = await fetch(retry);
+        const res = await fetchWithTimeout(retry);
         return new Response(await res.text(), { status: res.status, statusText: res.statusText, headers: res.headers });
       }
     }

@@ -55,7 +55,7 @@ async function toDto(s: StatusRow): Promise<StatusDto> {
       ? {
           fileId: s.file.id,
           mime: s.file.mime,
-          url: storageConfigured() ? await presignDownload(s.file.key, null, MEDIA_URL_TTL_SECONDS) : null,
+          url: storageConfigured() ? await presignDownload(s.file.key, null, MEDIA_URL_TTL_SECONDS).catch(() => null) : null,
         }
       : null,
     createdAt: s.createdAt.toISOString(),

@@ -20,6 +20,10 @@ bun run dev                        # http://localhost:4000
 
 ## File sharing (S3)
 
+**Easiest: Terraform.** [`infra/terraform`](../infra/terraform/README.md) creates the bucket, the auto-delete rules and a least-privilege IAM user. Its `write-engine-env.sh` fills in `.env` for you.
+
+**Or by hand:**
+
 Set the following in `.env`:
 - `S3_BUCKET` and `S3_REGION`
 - AWS credentials, via `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` or any standard AWS credential source

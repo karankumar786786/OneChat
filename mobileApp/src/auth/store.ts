@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { API_BASE } from "../config";
+import { fetchWithTimeout } from "../lib/fetch";
 import type { components } from "../api/schema";
 
 type Me = components["schemas"]["Me"];
@@ -97,7 +98,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       const refreshToken = get().refreshToken;
       if (!refreshToken) return null;
       try {
-        const res = await fetch(`${API_BASE}/auth/refresh`, {
+        const res = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ refreshToken }),

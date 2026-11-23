@@ -1,57 +1,79 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, unwrap } from "@/api/client";
+import { api, unwrap, ApiError } from "@/api/client";
 import { useAuth } from "@/auth/store";
-import { uploadFile } from "@/files/upload";
+import { pickSquarePhoto, removeProfilePhoto, setProfilePhoto } from "@/profile/photo";
+import { openImage } from "@/ui/openImage";
 import { Avatar, Button, Field } from "@/ui/components";
 import { colors, radius, space } from "@/ui/theme";
 
 export default function Settings() {
   const me = useAuth((s) => s.me!);
   const [displayName, setDisplayName] = useState(me.displayName ?? "");
+  const [about, setAbout] = useState(me.about ?? "");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
   const qc = useQueryClient();
   const blocks = useQuery({ queryKey: ["blocks"], queryFn: () => unwrap(api.GET("/blocks")).then((r) => r.users) });
 
-  async function changeAvatar() {
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    const a = r.assets?.[0];
-    if (r.canceled || !a) return;
-    try {
-      const file = await uploadFile({ uri: a.uri, name: a.fileName ?? "avatar.jpg", mime: a.mimeType ?? "image/jpeg", size: a.fileSize ?? 0 }, "avatar");
-      await useAuth.getState().setMe(await unwrap(api.PATCH("/me", { body: { avatarFileId: file.id } })));
-    } catch (e) {
-      Alert.alert("Could not update photo", e instanceof Error ? e.message : "Try again");
-    }
+  useEffect(() => {
+    setDisplayName(me.displayName ?? "");
+    setAbout(me.about ?? "");
+  }, [me.displayName, me.about]);
+
+  async function changePhoto() {
+    const photo = await pickSquarePhoto();
+    if (!photo) return;
+    setUploading(true);
+    await setProfilePhoto(photo);
+    setUploading(false);
   }
 
-  async function saveName() {
+  function photoMenu() {
+    if (!me.avatarUrl) return void changePhoto();
+    Alert.alert("Profile photo", undefined, [
+      { text: "View photo", onPress: () => openImage(me.avatarUrl, { cacheKey: me.avatarFileId, title: "Profile photo" }) },
+      { text: "Change photo", onPress: () => void changePhoto() },
+      { text: "Remove photo", style: "destructive", onPress: () => void removeProfilePhoto().catch(() => Alert.alert("Couldn't remove photo")) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }
+
+  async function saveProfile() {
     setSaving(true);
     try {
-      await useAuth.getState().setMe(await unwrap(api.PATCH("/me", { body: { displayName: displayName.trim() || null } })));
+      const updated = await unwrap(api.PATCH("/me", { body: { displayName: displayName.trim() || null, about: about.trim() || null } }));
+      await useAuth.getState().setMe(updated);
+    } catch (e) {
+      Alert.alert("Couldn't save", e instanceof ApiError ? e.message : "Try again");
     } finally {
       setSaving(false);
     }
   }
 
+  const dirty = displayName !== (me.displayName ?? "") || about !== (me.about ?? "");
+
   return (
     <ScrollView contentContainerStyle={{ padding: space(4), gap: space(5) }}>
       <View style={styles.card}>
-        <Pressable onPress={changeAvatar} style={{ alignItems: "center", gap: space(2) }}>
-          <Avatar name={me.username} url={me.avatarUrl} cacheKey={me.avatarFileId} size={84} />
-          <Text style={{ color: colors.primary }}>Change photo</Text>
+        <Pressable onPress={photoMenu} style={{ alignItems: "center", gap: space(2) }}>
+          <Avatar name={me.displayName || me.username} url={me.avatarUrl} cacheKey={me.avatarFileId} size={96} />
+          <Text style={{ color: colors.primary }}>{uploading ? "Uploading…" : me.avatarUrl ? "Edit photo" : "Add photo"}</Text>
         </Pressable>
-        <Text style={styles.username}>@{me.username}</Text>
-        <Text style={styles.muted}>{me.email}</Text>
+        <Pressable onPress={() => router.push(`/user/${me.id}`)} style={{ alignItems: "center" }}>
+          <Text style={styles.name}>{me.displayName || `@${me.username}`}</Text>
+          <Text style={styles.username}>@{me.username}</Text>
+          <Text style={styles.muted}>{me.email}</Text>
+        </Pressable>
       </View>
 
       <View style={[styles.card, { alignItems: "stretch", gap: space(3) }]}>
-        <Field label="Display name" value={displayName} onChangeText={setDisplayName} placeholder="Shown instead of your username" maxLength={50} />
-        <Button title="Save name" onPress={saveName} loading={saving} disabled={displayName === (me.displayName ?? "")} />
+        <Field label="Name" value={displayName} onChangeText={setDisplayName} placeholder="Shown instead of your username" maxLength={50} />
+        <Field label="About" value={about} onChangeText={setAbout} placeholder="Hey there! I am using Chat." maxLength={140} hint={`${about.length}/140`} />
+        <Button title="Save profile" onPress={saveProfile} loading={saving} disabled={!dirty} />
         <Button title="Change username" variant="ghost" onPress={() => router.push("/edit-username")} />
       </View>
 
@@ -60,8 +82,13 @@ export default function Settings() {
         {blocks.data?.length ? (
           blocks.data.map((u) => (
             <View key={u.id} style={styles.blockRow}>
-              <Avatar name={u.username} url={u.avatarUrl} cacheKey={u.avatarFileId} size={36} />
-              <Text style={{ flex: 1, color: colors.text }}>@{u.username}</Text>
+              <Pressable onPress={() => router.push(`/user/${u.id}`)}>
+                <Avatar name={u.displayName || u.username} url={u.avatarUrl} cacheKey={u.avatarFileId} size={36} />
+              </Pressable>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.text, fontWeight: "600" }}>{u.displayName || `@${u.username}`}</Text>
+                {u.displayName ? <Text style={styles.muted}>@{u.username}</Text> : null}
+              </View>
               <Pressable
                 onPress={async () => {
                   await api.DELETE("/blocks/{userId}", { params: { path: { userId: u.id } } });
@@ -93,7 +120,8 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space(4), alignItems: "center", gap: space(1) },
-  username: { fontSize: 20, fontWeight: "700", color: colors.text, marginTop: space(2) },
+  name: { fontSize: 20, fontWeight: "700", color: colors.text, marginTop: space(2) },
+  username: { fontSize: 15, color: colors.primary },
   muted: { color: colors.muted },
   section: { fontSize: 13, fontWeight: "700", color: colors.muted, textTransform: "uppercase", marginBottom: space(2) },
   blockRow: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(2) },

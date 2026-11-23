@@ -11,13 +11,13 @@ bun install
 bun run ios        # or: bun run android
 ```
 
-Set where the engine runs in `.env`:
+**No address to configure in development.** The app reaches the engine on the same host it was loaded from (Metro), on port 4000:
+- the iOS simulator uses `127.0.0.1`;
+- a phone that scanned the QR uses your computer's current Wi-Fi IP, even after the network changes.
 
-| Where the app runs | `EXPO_PUBLIC_API_URL` |
-|---|---|
-| iOS simulator | `http://localhost:4000` |
-| Android emulator | `http://10.0.2.2:4000` |
-| Physical phone | `http://<your computer's LAN IP>:4000` |
+For production builds, set `EXPO_PUBLIC_API_URL` (e.g. `https://api.example.com`).
+
+To open the app on a phone, scan the QR from `bun run start` (or open `exp://<your-computer-ip>:8081` in Expo Go). The phone must be on the same network as the computer.
 
 Every native module used here is in Expo Go, so the app runs there. Push notifications need two extra things:
 - a physical device;
@@ -65,10 +65,12 @@ bunx expo-doctor
 ```
 src/app/            routes (Expo Router)
   (auth)/           login, register
-  username.tsx      shown until a username is set
+  username.tsx      profile setup (photo, name, username), shown until a username is set
   (app)/(tabs)/     chats, status, settings
   (app)/chat/[peerId].tsx   1:1 and group chats (peerId is the group id for groups)
   (app)/group/new, group/[id] (info), group/[id]/add, message-info/[id], join/[code]
+  (app)/user/[id]          contact info (profile)
+  (app)/viewer             full-screen image
   (app)/search, forward, status/[userId] (viewer), status/new, status/mine/[id]
 src/api/            typed REST client (openapi-fetch) + generated schema
 src/auth/           token store with refresh
