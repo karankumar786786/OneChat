@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "bun"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  /// Always stored lowercased.
+  email        String    @unique
+  passwordHash String
+  /// Lowercase, 3-20 chars of [a-z0-9_.]. Null until the user picks one.
+  username     String?   @unique @db.VarChar(20)
+  displayName  String?   @db.VarChar(50)
+  avatarFileId String?   @db.Uuid
+  lastSeenAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions       Session[]
+  pushTokens     PushToken[]
+  connectionsA   Connection[]    @relation("ConnectionA")
+  connectionsB   Connection[]    @relation("ConnectionB")
+  blocksMade     Block[]         @relation("Blocker")
+  blocksReceived Block[]         @relation("Blocked")
+  files          File[]
+  fileGrants     FileGrant[]
+  statuses       Status[]
+  statusViews    StatusView[]
+  statusComments StatusComment[]
+  pendingEvents  PendingEvent[]  @relation("PendingRecipient")
+  groupsCreated  Group[]         @relation("GroupCreator")
+  memberships    GroupMember[]
+
+  @@index([username(ops: raw("text_pattern_ops"))], map: "User_username_prefix_idx")
+}
+
+model Session {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  deviceId  String?   @db.VarChar(100)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+  pushTokens    PushToken[]
+
+  @@index([userId])
+}
+
+/// Each refresh token is single-use. Presenting a used token again means it leaked,
+/// so every session of that user is revoked.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  sessionId String    @db.Uuid
+  tokenHash String    @unique
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model PushToken {
+  token     String   @id
+  userId    String   @db.Uuid
+  sessionId String   @db.Uuid
+  platform  String   @db.VarChar(10)
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Created automatically on the first message between two users. userAId < userBId.
+model Connection {
+  userAId   String   @db.Uuid
+  userBId   String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  userA User @relation("ConnectionA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("ConnectionB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@id([userAId, userBId])
+  @@index([userBId])
+}
+
+model Block {
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+enum FilePurpose {
+  chat
+  status
+  avatar
+}
+
+enum FileState {
+  pending
+  ready
+}
+
+model File {
+  id              String      @id @default(uuid()) @db.Uuid
+  ownerId         String      @db.Uuid
+  key             String      @unique
+  mime            String      @db.VarChar(127)
+  size            Int
+  name            String?     @db.VarChar(255)
+  purpose         FilePurpose
+  state           FileState   @default(pending)
+  /// Null means the file never expires (avatars).
+  expiresAt       DateTime?
+  /// When the S3 object's age was last reset (upload or in-place copy on forward).
+  lastRefreshedAt DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+
+  owner    User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  grants   FileGrant[]
+  statuses Status[]
+
+  @@index([expiresAt])
+}
+
+/// Who may download a file: the owner, everyone it was sent to, and everyone it was forwarded to.
+model FileGrant {
+  fileId    String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([fileId, userId])
+  @@index([userId])
+}
+
+/// Store-until-delivered queue. A row is deleted as soon as the recipient's device acks it.
+/// This is the only place message content ever touches the server.
+model PendingEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  recipientId String   @db.Uuid
+  senderId    String   @db.Uuid
+  type        String   @db.VarChar(32)
+  /// Set for type=message so a pending message can be retracted before delivery.
+  messageId   String?  @db.Uuid
+  /// Set for group traffic, so delivered receipts can say which group they belong to.
+  groupId     String?  @db.Uuid
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  recipient User @relation("PendingRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt])
+  @@index([recipientId, messageId])
+  @@index([messageId])
+}
+
+enum StatusType {
+  text
+  image
+  video
+}
+
+model Status {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @db.Uuid
+  type      StatusType
+  text      String?    @db.VarChar(700)
+  bg        String?    @db.VarChar(9)
+  fileId    String?    @db.Uuid
+  createdAt DateTime   @default(now())
+  expiresAt DateTime
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file     File?           @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  views    StatusView[]
+  comments StatusComment[]
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model StatusView {
+  statusId  String    @db.Uuid
+  viewerId  String    @db.Uuid
+  viewedAt  DateTime  @default(now())
+  reaction  String?   @db.VarChar(16)
+  reactedAt DateTime?
+
+  status Status @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  viewer User   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@id([statusId, viewerId])
+}
+
+model StatusComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  statusId  String   @db.Uuid
+  authorId  String   @db.Uuid
+  text      String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  status Status @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([statusId, createdAt])
+}
+
+enum GroupRole {
+  member
+  admin
+}
+
+model Group {
+  id                    String   @id @default(uuid()) @db.Uuid
+  name                  String   @db.VarChar(100)
+  description           String?  @db.VarChar(512)
+  avatarFileId          String?  @db.Uuid
+  createdById           String   @db.Uuid
+  /// "Send messages: only admins" (announcement group).
+  onlyAdminsCanSend     Boolean  @default(false)
+  /// "Edit group info: only admins".
+  onlyAdminsCanEditInfo Boolean  @default(false)
+  /// Invite link code; null while the link is turned off.
+  inviteCode            String?  @unique @db.VarChar(32)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  createdBy User          @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members   GroupMember[]
+}
+
+model GroupMember {
+  groupId    String    @db.Uuid
+  userId     String    @db.Uuid
+  role       GroupRole @default(member)
+  addedById  String?   @db.Uuid
+  joinedAt   DateTime  @default(now())
+  /// Push notifications are skipped until then (unless the member is @mentioned).
+  mutedUntil DateTime?
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@index([userId])
+}
