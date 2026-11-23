@@ -107,7 +107,7 @@ export default function ChatScreen() {
           onPress={() => router.push(`/group/${peerId}`)}
           style={{ flexDirection: "row", alignItems: "center", gap: space(2), maxWidth: 240 }}
         >
-          <Avatar name={isGroup ? name : chat?.username} url={chat?.avatarUrl} cacheKey={chat?.avatarFileId} size={32} />
+          <Avatar name={isGroup ? name : chat?.username} url={chat?.avatarUrl} cacheKey={chat?.avatarFileId} size={32} group={isGroup} />
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.headerName} numberOfLines={1}>{name}</Text>
             <Text style={[styles.headerSub, highlighted && { color: colors.primary }]} numberOfLines={1}>{subtitle}</Text>

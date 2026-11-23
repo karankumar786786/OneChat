@@ -187,14 +187,19 @@ export async function updateInfo(
 ) {
   const { meta, role } = await requireMember(userId, groupId);
   if (meta.onlyAdminsCanEditInfo && role !== "admin") throw forbidden("Only admins can edit this group's info");
+  const current = await prisma.group.findUniqueOrThrow({ where: { id: groupId }, select: { name: true, description: true, avatarFileId: true } });
+  // Only real changes are saved and announced, so members don't see "changed the description" for a no-op.
   const changes: NonNullable<GroupUpdatePayload["changes"]> = {};
   if (input.name !== undefined) {
     const name = input.name.trim();
     if (!name) throw badRequest("Group name is required");
-    changes.name = name;
+    if (name !== current.name) changes.name = name;
   }
-  if (input.description !== undefined) changes.description = input.description?.trim() || null;
-  if (input.avatarFileId !== undefined) {
+  if (input.description !== undefined) {
+    const description = input.description?.trim() || null;
+    if (description !== current.description) changes.description = description;
+  }
+  if (input.avatarFileId !== undefined && input.avatarFileId !== current.avatarFileId) {
     if (input.avatarFileId) await checkAvatar(userId, input.avatarFileId);
     changes.avatarFileId = input.avatarFileId;
   }

@@ -36,6 +36,7 @@ Every native module used here is in Expo Go, so the app runs there. Push notific
   5. The outbox is flushed.
 - **Outbox.** Messages you send go to the outbox first, so they survive being offline or closing the app, and are retried on reconnect.
 - **Ticks**: 🕓 pending → ✓ sent (server ack) → ✓✓ delivered → ✓✓ blue read. Read receipts go out when you open a chat, or when a message arrives in a chat you have open.
+  - **In groups**, the server's ack lists who the message went to. Receipts arrive one per member and are stored in `receipts`. ✓✓ / blue need every member, and Message info shows each person.
 - **Files** upload straight to S3 with a presigned POST and expire after 30 days. Forwarding a file resets its clock. Expired files show "File expired".
 - **Statuses** last 24 hours. Viewing one logs a view. Reactions are visible to the owner, and comments only to you and the owner.
 - **Sessions.** Tokens are kept in SecureStore, and the access token refreshes automatically (single-flight). Signing in on another device signs this one out.
@@ -66,7 +67,9 @@ src/app/            routes (Expo Router)
   (auth)/           login, register
   username.tsx      shown until a username is set
   (app)/(tabs)/     chats, status, settings
-  (app)/chat/[peerId].tsx, search, forward, status/[userId] (viewer), status/new, status/mine/[id]
+  (app)/chat/[peerId].tsx   1:1 and group chats (peerId is the group id for groups)
+  (app)/group/new, group/[id] (info), group/[id]/add, message-info/[id], join/[code]
+  (app)/search, forward, status/[userId] (viewer), status/new, status/mine/[id]
 src/api/            typed REST client (openapi-fetch) + generated schema
 src/auth/           token store with refresh
 src/db/             local SQLite: schema, queries, live hooks

@@ -27,6 +27,18 @@ Clients in other languages can be generated from or written against those two fi
 - **No message history on the server.** It holds a message only until the receiver's device gets it.
 - File sharing through S3 with 30-day auto-delete. Forwarding a file restarts its 30 days.
 - 24-hour statuses (text, photo, video) with a view log, reactions and private comments.
+- **Group chats** (up to 256 people), like WhatsApp groups:
+  - admins and the creator;
+  - add/remove participants, make or dismiss admins;
+  - name, description and icon;
+  - "only admins can send" and "only admins can edit info" settings;
+  - invite links you can reset, join by link;
+  - leave (the longest-standing member becomes admin if the last admin leaves);
+  - mute, with @mentions still notifying;
+  - per-member delivered/read with a Message info screen;
+  - group typing, reactions, reply and forward;
+  - admins can delete anyone's message;
+  - system lines ("@a added @b").
 - Block users, and push notifications (Expo push) when the app is closed.
 
 Audio and video calls are planned for later. The `call:*` socket namespace is reserved for WebRTC signalling.

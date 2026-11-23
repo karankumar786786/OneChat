@@ -29,7 +29,7 @@ export async function getGroupMeta(groupId: string): Promise<GroupMeta | null> {
       onlyAdminsCanEditInfo: true,
       createdById: true,
       members: {
-        orderBy: { joinedAt: "asc" },
+        orderBy: [{ joinedAt: "asc" }, { userId: "asc" }],
         select: { userId: true, role: true, mutedUntil: true, user: { select: { username: true } } },
       },
     },

@@ -67,7 +67,7 @@ src/
   index.ts              Bun.serve: REST + Socket.IO on one port, BullMQ workers
   config/env.ts         validated environment
   lib/                  prisma, redis, s3, jwt, errors, rate limits, http helpers
-  modules/              auth, users, connections, blocks, files, statuses, devices
+  modules/              auth, users, connections, blocks, files, statuses, devices, groups
   realtime/
     server.ts           socket auth, rooms, connect/disconnect
     inbox.ts            store-until-delivered queue + delivered receipts

@@ -60,8 +60,12 @@ describe("groups: create and manage", () => {
     expect((await api(ctx, "DELETE", `/groups/${g.id}/members/${a.id}`, { token: b.token })).status).toBe(403);
     expect((await api(ctx, "DELETE", `/groups/${g.id}/admins/${a.id}`, { token: b.token })).status).toBe(403);
 
-    // Anyone can edit info until admins restrict it.
-    expect((await api(ctx, "PATCH", `/groups/${g.id}`, { token: c.token, body: { name: "Renamed" } })).status).toBe(200);
+    // Anyone can edit info until admins restrict it. Unchanged fields are not announced.
+    const carolSock = await Client.connect(ctx, c.token);
+    expect((await api(ctx, "PATCH", `/groups/${g.id}`, { token: c.token, body: { name: "Renamed", description: null } })).status).toBe(200);
+    const info = await carolSock.waitForEvent((e) => e.type === "group.update" && e.payload.action === "info");
+    expect(info.payload.changes).toEqual({ name: "Renamed" });
+    carolSock.close();
     await api(ctx, "PATCH", `/groups/${g.id}/settings`, { token: a.token, body: { onlyAdminsCanEditInfo: true } });
     expect((await api(ctx, "PATCH", `/groups/${g.id}`, { token: c.token, body: { name: "Nope" } })).status).toBe(403);
 
@@ -83,12 +87,15 @@ describe("groups: create and manage", () => {
     expect((await api(ctx, "POST", `/groups/${g.id}/leave`, { token: a.token })).status).toBe(204);
     const after = (await api(ctx, "GET", `/groups/${g.id}`, { token: b.token })).body;
     expect(after.memberCount).toBe(2);
-    expect(after.members.find((m: any) => m.user.id === b.id).role).toBe("admin");
+    // b and c joined at the same moment, so either may be picked; exactly one becomes admin.
+    const admins = after.members.filter((m: any) => m.role === "admin").map((m: any) => m.user.id);
+    expect(admins).toHaveLength(1);
+    expect([b.id, c.id]).toContain(admins[0]);
 
     const bob = await Client.connect(ctx, b.token);
     const left = await bob.waitForEvent((e) => e.type === "group.update" && e.payload.action === "left");
     expect(left.payload.actor.id).toBe(a.id);
-    await bob.waitForEvent((e) => e.type === "group.update" && e.payload.action === "promoted" && e.payload.targets[0].id === b.id);
+    await bob.waitForEvent((e) => e.type === "group.update" && e.payload.action === "promoted" && e.payload.targets[0].id === admins[0]);
     bob.close();
 
     await api(ctx, "POST", `/groups/${g.id}/leave`, { token: b.token });
