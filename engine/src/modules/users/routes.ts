@@ -35,12 +35,13 @@ router.openapi(
     method: "patch",
     path: "/me",
     tags: ["users"],
-    summary: "Update display name or avatar (avatarFileId from a finished avatar upload, or null to remove)",
+    summary: "Update name, About line or profile photo (avatarFileId from a finished avatar upload, or null to remove)",
     security: bearerSecurity,
     request: {
       body: jsonBody(
         z.object({
           displayName: z.string().max(50).nullable().optional(),
+          about: z.string().max(140).nullable().optional(),
           avatarFileId: z.string().uuid().nullable().optional(),
         }),
       ),
@@ -101,7 +102,7 @@ router.openapi(
     method: "get",
     path: "/users/search",
     tags: ["users"],
-    summary: "Find people by username prefix",
+    summary: "Find people by username prefix or name (\"@abc\" = usernames only)",
     security: bearerSecurity,
     request: {
       query: z.object({
@@ -133,6 +134,39 @@ router.openapi(
     const username = users.normalizeUsername(c.req.valid("param").username);
     return c.json(await toPublicUser(await users.getVisibleUser(c.get("userId"), { username })), 200);
   },
+);
+
+const ProfileSchema = z
+  .object({
+    user: PublicUserSchema,
+    isMe: z.boolean(),
+    isConnected: z.boolean(),
+    blockedByMe: z.boolean(),
+    online: z.boolean().nullable().openapi({ description: "null when you can't see their presence" }),
+    lastSeenAt: z.string().nullable(),
+    commonGroups: z.array(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string(),
+        avatarFileId: z.string().uuid().nullable(),
+        avatarUrl: z.string().url().nullable(),
+        memberCount: z.number().int(),
+      }),
+    ),
+  })
+  .openapi("UserProfile");
+
+router.openapi(
+  createRoute({
+    method: "get",
+    path: "/users/{id}/profile",
+    tags: ["users"],
+    summary: "Profile screen: user, About, online/last seen, groups in common, block state",
+    security: bearerSecurity,
+    request: { params: z.object({ id: z.string().uuid() }) },
+    responses: { 200: jsonResponse(ProfileSchema, "Profile"), 404: errorResponse("Not found"), ...authErrors },
+  }),
+  async (c) => c.json(await users.userProfile(c.get("userId"), c.req.valid("param").id), 200),
 );
 
 router.openapi(

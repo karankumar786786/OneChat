@@ -5,14 +5,9 @@ import { useAuth } from "../auth/store";
 import { Button, Field } from "./components";
 import { space } from "./theme";
 
-/** Username input with a live availability check. Used at sign-up and in settings. */
-export function UsernameForm({ onDone }: { onDone?: () => void }) {
-  const current = useAuth((s) => s.me?.username ?? "");
-  const [value, setValue] = useState(current);
+/** Live "is this username free?" check, debounced. */
+export function useUsernameCheck(value: string, current: string) {
   const [check, setCheck] = useState<{ available: boolean; reason: string | null } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
   useEffect(() => {
     const q = value.trim();
     setCheck(null);
@@ -23,6 +18,19 @@ export function UsernameForm({ onDone }: { onDone?: () => void }) {
     }, 350);
     return () => clearTimeout(t);
   }, [value, current]);
+  return check;
+}
+
+export const usernameHint = (check: { available: boolean; reason: string | null } | null) =>
+  check ? (check.available ? "✓ Available" : check.reason) : "3–20 characters: letters, numbers, _ and .";
+
+/** Username input with a live availability check. Used in settings. */
+export function UsernameForm({ onDone }: { onDone?: () => void }) {
+  const current = useAuth((s) => s.me?.username ?? "");
+  const [value, setValue] = useState(current);
+  const check = useUsernameCheck(value, current);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   async function save() {
     setError(null);
@@ -38,7 +46,7 @@ export function UsernameForm({ onDone }: { onDone?: () => void }) {
     }
   }
 
-  const hint = check ? (check.available ? "✓ Available" : check.reason) : "3–20 characters: letters, numbers, _ and .";
+  const hint = usernameHint(check);
   return (
     <View style={{ gap: space(3) }}>
       <Field

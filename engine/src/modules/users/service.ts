@@ -1,7 +1,9 @@
 import { prisma } from "../../lib/prisma.ts";
 import { badRequest, conflict, notFound } from "../../lib/errors.ts";
-import { blockedEitherWayIds, isBlockedEitherWay } from "../blocks/service.ts";
-import { publicUserSelect } from "./dto.ts";
+import { blockedEitherWayIds, hasBlocked, isBlockedEitherWay } from "../blocks/service.ts";
+import { isConnected } from "../connections/service.ts";
+import { getPresence } from "../../realtime/presence.ts";
+import { avatarUrls, publicUserSelect, toPublicUser } from "./dto.ts";
 
 export const USERNAME_RE = /^[a-z0-9](?:[a-z0-9_.]{1,18})[a-z0-9]$/;
 
@@ -45,7 +47,10 @@ export async function setUsername(userId: string, raw: string) {
   }
 }
 
-export async function updateProfile(userId: string, input: { displayName?: string | null; avatarFileId?: string | null }) {
+export async function updateProfile(
+  userId: string,
+  input: { displayName?: string | null; about?: string | null; avatarFileId?: string | null },
+) {
   if (input.avatarFileId) {
     const file = await prisma.file.findUnique({ where: { id: input.avatarFileId } });
     if (!file || file.ownerId !== userId || file.purpose !== "avatar" || file.state !== "ready") {
@@ -56,6 +61,7 @@ export async function updateProfile(userId: string, input: { displayName?: strin
     where: { id: userId },
     data: {
       ...(input.displayName !== undefined ? { displayName: input.displayName?.trim() || null } : {}),
+      ...(input.about !== undefined ? { about: input.about?.trim() || null } : {}),
       ...(input.avatarFileId !== undefined ? { avatarFileId: input.avatarFileId } : {}),
     },
   });
@@ -63,17 +69,37 @@ export async function updateProfile(userId: string, input: { displayName?: strin
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
 
-/** Prefix search on username. Uses the text_pattern_ops index, so LIKE 'abc%' stays fast. */
+/**
+ * Finds people by username prefix or by name (any word of the display name starting with
+ * the term). "@abc" searches usernames only. Exact username matches come first.
+ * Usernames use the text_pattern_ops index; names are fine to scan at this scale.
+ */
 export async function searchUsers(me: string, rawQuery: string, limit: number) {
-  const q = normalizeUsername(rawQuery);
-  if (!q || !/^[a-z0-9_.]+$/.test(q)) return [];
+  const term = rawQuery.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!term) return [];
+  const usernameOnly = term.startsWith("@");
+  const uname = term.replace(/^@/, "");
+  const unameOk = /^[a-z0-9_.]+$/.test(uname);
+  if (usernameOnly && !unameOk) return [];
+  if (!uname) return [];
   const hidden = await blockedEitherWayIds(me);
-  const rows = await prisma.$queryRaw<{ id: string; username: string; displayName: string | null; avatarFileId: string | null }[]>`
-    SELECT id, username, "displayName", "avatarFileId"
+  const unamePattern = unameOk ? escapeLike(uname) + "%" : null;
+  const namePattern = escapeLike(uname) + "%";
+  const wordPattern = "% " + escapeLike(uname) + "%";
+  const rows = await prisma.$queryRaw<
+    { id: string; username: string; displayName: string | null; about: string | null; avatarFileId: string | null }[]
+  >`
+    SELECT id, username, "displayName", about, "avatarFileId"
     FROM "User"
-    WHERE username LIKE ${escapeLike(q) + "%"} ESCAPE '\\'
+    WHERE username IS NOT NULL
       AND id <> ${me}::uuid
-    ORDER BY (username = ${q}) DESC, length(username), username
+      AND (
+        (${unamePattern}::text IS NOT NULL AND username LIKE ${unamePattern} ESCAPE '\\')
+        OR (${!usernameOnly} AND (lower("displayName") LIKE ${namePattern} ESCAPE '\\' OR lower("displayName") LIKE ${wordPattern} ESCAPE '\\'))
+      )
+    ORDER BY (username = ${uname}) DESC,
+             (${unamePattern}::text IS NOT NULL AND username LIKE ${unamePattern} ESCAPE '\\') DESC,
+             length(username), username
     LIMIT ${limit + hidden.size}
   `;
   return rows.filter((r) => !hidden.has(r.id)).slice(0, limit);
@@ -85,4 +111,47 @@ export async function getVisibleUser(me: string, where: { id: string } | { usern
   if (!user || !user.username) throw notFound("User not found");
   if (user.id !== me && (await isBlockedEitherWay(me, user.id))) throw notFound("User not found");
   return user;
+}
+
+/**
+ * Everything the profile screen shows. Hidden (404) only when *they* blocked you, so you can
+ * still open someone you blocked to unblock them. Presence only for connections without a block.
+ */
+export async function userProfile(me: string, userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { ...publicUserSelect, lastSeenAt: true } });
+  if (!user?.username) throw notFound("User not found");
+  if (userId !== me && (await hasBlocked(userId, me))) throw notFound("User not found");
+  const blockedByMe = userId !== me && (await hasBlocked(me, userId));
+  const connected = userId === me || (await isConnected(me, userId));
+
+  let online: boolean | null = null;
+  let lastSeenAt: string | null = null;
+  if (connected && !blockedByMe && userId !== me) {
+    const [p] = await getPresence([userId], new Map([[userId, user.lastSeenAt]]));
+    online = p?.online ?? false;
+    lastSeenAt = p?.lastSeenAt ?? null;
+  }
+
+  const groups = await prisma.group.findMany({
+    where: { AND: [{ members: { some: { userId: me } } }, { members: { some: { userId } } }] },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, name: true, avatarFileId: true, _count: { select: { members: true } } },
+    take: 50,
+  });
+  const urls = await avatarUrls(groups.flatMap((g) => (g.avatarFileId ? [g.avatarFileId] : [])));
+  return {
+    user: await toPublicUser(user),
+    isMe: userId === me,
+    isConnected: connected,
+    blockedByMe,
+    online,
+    lastSeenAt,
+    commonGroups: userId === me ? [] : groups.map((g) => ({
+      id: g.id,
+      name: g.name,
+      avatarFileId: g.avatarFileId,
+      avatarUrl: g.avatarFileId ? (urls.get(g.avatarFileId) ?? null) : null,
+      memberCount: g._count.members,
+    })),
+  };
 }

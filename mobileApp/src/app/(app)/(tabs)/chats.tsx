@@ -47,7 +47,9 @@ export default function Chats() {
           const isTyping = isGroup ? Object.keys(groupTyping[item.peerId] ?? {}).length > 0 : Boolean(typing[item.peerId]);
           return (
             <Pressable style={({ pressed }) => [styles.row, pressed && { backgroundColor: "#EEF0F5" }]} onPress={() => router.push(`/chat/${item.peerId}`)}>
-              <Avatar name={isGroup ? item.displayName : item.username} url={item.avatarUrl} cacheKey={item.avatarFileId} online={!isGroup && presence[item.peerId]?.online} group={isGroup} />
+              <Pressable onPress={() => router.push(isGroup ? `/group/${item.peerId}` : `/user/${item.peerId}`)} hitSlop={4}>
+                <Avatar name={isGroup ? item.displayName : item.username} url={item.avatarUrl} cacheKey={item.avatarFileId} online={!isGroup && presence[item.peerId]?.online} group={isGroup} />
+              </Pressable>
               <View style={{ flex: 1, gap: 2 }}>
                 <View style={styles.line}>
                   <Text style={styles.name} numberOfLines={1}>{name}</Text>

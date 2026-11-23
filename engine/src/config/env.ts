@@ -20,6 +20,11 @@ const schema = z.object({
   S3_BUCKET: z.string().default(""),
   S3_REGION: z.string().default("ap-south-1"),
   S3_ENDPOINT: z.string().optional().transform((v) => (v ? v : undefined)),
+  /**
+   * Address put into presigned URLs handed to phones, when it differs from the one the engine
+   * uses (e.g. engine → http://localhost:9000, phones → http://192.168.x.x:9000 for local MinIO).
+   */
+  S3_PUBLIC_ENDPOINT: z.string().optional().transform((v) => (v ? v : undefined)),
   S3_FORCE_PATH_STYLE: bool,
 
   FILE_TTL_DAYS: z.coerce.number().int().positive().default(30),

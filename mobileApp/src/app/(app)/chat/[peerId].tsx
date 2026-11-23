@@ -103,8 +103,7 @@ export default function ChatScreen() {
     navigation.setOptions({
       headerTitle: () => (
         <Pressable
-          disabled={!isGroup}
-          onPress={() => router.push(`/group/${peerId}`)}
+          onPress={() => router.push(isGroup ? `/group/${peerId}` : `/user/${peerId}`)}
           style={{ flexDirection: "row", alignItems: "center", gap: space(2), maxWidth: 240 }}
         >
           <Avatar name={isGroup ? name : chat?.username} url={chat?.avatarUrl} cacheKey={chat?.avatarFileId} size={32} group={isGroup} />
@@ -130,6 +129,7 @@ export default function ChatScreen() {
               ]);
             } else {
               Alert.alert(name, undefined, [
+                { text: "View contact", onPress: () => router.push(`/user/${peerId}`) },
                 { text: blocked ? "Unblock" : "Block", style: blocked ? "default" : "destructive", onPress: toggleBlock },
                 clear,
                 { text: "Cancel", style: "cancel" },
@@ -217,6 +217,7 @@ export default function ChatScreen() {
             replyName={replyName}
             sender={isGroup && !item.fromMe ? memberMap.get(item.senderId ?? "") ?? null : null}
             showSender={isGroup}
+            onSenderPress={(uid) => router.push(`/user/${uid}`)}
             myId={myId}
             onLongPress={() => item.kind !== "system" && setSelected(item)}
           />

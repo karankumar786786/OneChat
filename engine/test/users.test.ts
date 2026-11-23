@@ -65,3 +65,51 @@ describe("usernames and search", () => {
     expect((await api(ctx, "GET", `/users/${blocker.id}`, { token: me.token })).status).toBe(200);
   });
 });
+
+describe("names, About and profiles", () => {
+  test("search matches names (any word) and usernames; @ limits to usernames", async () => {
+    const me = await makeUser(ctx, "nm");
+    const tag = uid().slice(0, 5);
+    const ravi = await makeUser(ctx, "nr");
+    await api(ctx, "PATCH", "/me", { token: ravi.token, body: { displayName: `Ravi Kumar${tag}`, about: "Busy" } });
+
+    const byFirst = await api(ctx, "GET", `/users/search?q=ravi`, { token: me.token });
+    expect(byFirst.body.users.map((u: any) => u.id)).toContain(ravi.id);
+    const bySecond = await api(ctx, "GET", `/users/search?q=${encodeURIComponent(`kumar${tag}`)}`, { token: me.token });
+    expect(bySecond.body.users.map((u: any) => u.id)).toEqual([ravi.id]);
+    expect(bySecond.body.users[0]).toMatchObject({ displayName: `Ravi Kumar${tag}`, about: "Busy" });
+    const mid = await api(ctx, "GET", `/users/search?q=${encodeURIComponent(`umar${tag}`)}`, { token: me.token });
+    expect(mid.body.users).toHaveLength(0);
+    const atOnly = await api(ctx, "GET", `/users/search?q=${encodeURIComponent(`@kumar${tag}`)}`, { token: me.token });
+    expect(atOnly.body.users).toHaveLength(0);
+    const byUsername = await api(ctx, "GET", `/users/search?q=@${ravi.username}`, { token: me.token });
+    expect(byUsername.body.users[0].id).toBe(ravi.id);
+  });
+
+  test("profile: presence for connections, groups in common, still visible after I block them", async () => {
+    const a = await makeUser(ctx, "pfa");
+    const b = await makeUser(ctx, "pfb");
+    const stranger = await makeUser(ctx, "pfx");
+    await api(ctx, "PATCH", "/me", { token: b.token, body: { about: "Hey there!" } });
+
+    const before = await api(ctx, "GET", `/users/${b.id}/profile`, { token: a.token });
+    expect(before.body).toMatchObject({ isConnected: false, online: null, blockedByMe: false, commonGroups: [] });
+    expect(before.body.user.about).toBe("Hey there!");
+
+    const sock = await Client.connect(ctx, a.token);
+    await sock.emit("message:send", { id: Bun.randomUUIDv7(), to: b.id, kind: "text", text: "hi" });
+    sock.close();
+    const g = await api(ctx, "POST", "/groups", { token: a.token, body: { name: "Common", memberIds: [b.id] } });
+
+    const after = await api(ctx, "GET", `/users/${b.id}/profile`, { token: a.token });
+    expect(after.body).toMatchObject({ isConnected: true, online: false });
+    expect(after.body.commonGroups).toEqual([expect.objectContaining({ id: g.body.id, name: "Common", memberCount: 2 })]);
+
+    await api(ctx, "POST", `/blocks/${b.id}`, { token: a.token });
+    const blocked = await api(ctx, "GET", `/users/${b.id}/profile`, { token: a.token });
+    expect(blocked.body).toMatchObject({ blockedByMe: true, online: null });
+    // b cannot see a's profile now; a stranger can see b's.
+    expect((await api(ctx, "GET", `/users/${a.id}/profile`, { token: b.token })).status).toBe(404);
+    expect((await api(ctx, "GET", `/users/${b.id}/profile`, { token: stranger.token })).status).toBe(200);
+  });
+});

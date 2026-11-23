@@ -17,6 +17,11 @@ export const s3 = new S3Client({
   forcePathStyle: env.S3_FORCE_PATH_STYLE,
 });
 
+/** Signs URLs for clients. Signing is local, so this client never has to reach the public address. */
+const presigner = env.S3_PUBLIC_ENDPOINT
+  ? new S3Client({ region: env.S3_REGION, endpoint: env.S3_PUBLIC_ENDPOINT, forcePathStyle: env.S3_FORCE_PATH_STYLE })
+  : s3;
+
 const bucket = () => {
   if (!env.S3_BUCKET) throw new AppError(503, "STORAGE_NOT_CONFIGURED", "File storage is not configured");
   return env.S3_BUCKET;
@@ -27,7 +32,7 @@ export const DOWNLOAD_URL_TTL_SECONDS = 5 * 60;
 
 /** Presigned POST so S3 itself enforces the size limit and content type. */
 export async function presignUpload(key: string, mime: string, maxBytes: number) {
-  return createPresignedPost(s3, {
+  return createPresignedPost(presigner, {
     Bucket: bucket(),
     Key: key,
     Conditions: [
@@ -41,7 +46,7 @@ export async function presignUpload(key: string, mime: string, maxBytes: number)
 
 export async function presignDownload(key: string, filename?: string | null, ttlSeconds = DOWNLOAD_URL_TTL_SECONDS) {
   return getSignedUrl(
-    s3,
+    presigner,
     new GetObjectCommand({
       Bucket: bucket(),
       Key: key,

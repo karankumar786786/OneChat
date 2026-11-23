@@ -26,6 +26,8 @@ export default function AppLayout() {
       <Stack.Screen name="group/[id]/add" options={{ title: "Add participants" }} />
       <Stack.Screen name="message-info/[id]" options={{ title: "Message info" }} />
       <Stack.Screen name="join/[code]" options={{ title: "Group invite" }} />
+      <Stack.Screen name="user/[id]" options={{ title: "Contact info" }} />
+      <Stack.Screen name="viewer" options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade" }} />
     </Stack>
   );
 }

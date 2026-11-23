@@ -16,6 +16,8 @@ model User {
   /// Lowercase, 3-20 chars of [a-z0-9_.]. Null until the user picks one.
   username     String?   @unique @db.VarChar(20)
   displayName  String?   @db.VarChar(50)
+  /// The "About" line on the profile.
+  about        String?   @db.VarChar(140)
   avatarFileId String?   @db.Uuid
   lastSeenAt   DateTime?
   createdAt    DateTime  @default(now())

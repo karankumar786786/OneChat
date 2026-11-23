@@ -7,6 +7,7 @@ export const PublicUserSchema = z
     id: z.string().uuid(),
     username: z.string(),
     displayName: z.string().nullable(),
+    about: z.string().nullable().openapi({ description: "The profile's About line" }),
     avatarFileId: z.string().uuid().nullable().openapi({ description: "Use as the image cache key; the URL changes on every response." }),
     avatarUrl: z.string().url().nullable(),
   })
@@ -18,6 +19,7 @@ export const MeSchema = z
     email: z.string(),
     username: z.string().nullable(),
     displayName: z.string().nullable(),
+    about: z.string().nullable(),
     avatarFileId: z.string().uuid().nullable(),
     avatarUrl: z.string().url().nullable(),
     createdAt: z.string(),
@@ -31,6 +33,7 @@ type UserRow = {
   id: string;
   username: string | null;
   displayName: string | null;
+  about?: string | null;
   avatarFileId: string | null;
 };
 
@@ -50,6 +53,7 @@ export async function toPublicUsers(rows: UserRow[]): Promise<PublicUser[]> {
     id: r.id,
     username: r.username ?? "",
     displayName: r.displayName,
+    about: r.about ?? null,
     avatarFileId: r.avatarFileId,
     avatarUrl: r.avatarFileId ? (urls.get(r.avatarFileId) ?? null) : null,
   }));
@@ -64,4 +68,4 @@ export async function toMe(row: UserRow & { email: string; createdAt: Date }): P
   return { ...pub, username: row.username, email: row.email, createdAt: row.createdAt.toISOString() };
 }
 
-export const publicUserSelect = { id: true, username: true, displayName: true, avatarFileId: true } as const;
+export const publicUserSelect = { id: true, username: true, displayName: true, about: true, avatarFileId: true } as const;

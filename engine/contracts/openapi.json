@@ -56,6 +56,12 @@
               "null"
             ]
           },
+          "about": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "avatarFileId": {
             "type": [
               "string",
@@ -79,6 +85,7 @@
           "email",
           "username",
           "displayName",
+          "about",
           "avatarFileId",
           "avatarUrl",
           "createdAt"
@@ -170,6 +177,13 @@
               "null"
             ]
           },
+          "about": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The profile's About line"
+          },
           "avatarFileId": {
             "type": [
               "string",
@@ -190,8 +204,87 @@
           "id",
           "username",
           "displayName",
+          "about",
           "avatarFileId",
           "avatarUrl"
+        ]
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/PublicUser"
+          },
+          "isMe": {
+            "type": "boolean"
+          },
+          "isConnected": {
+            "type": "boolean"
+          },
+          "blockedByMe": {
+            "type": "boolean"
+          },
+          "online": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "null when you can't see their presence"
+          },
+          "lastSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commonGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "avatarFileId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid"
+                },
+                "avatarUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uri"
+                },
+                "memberCount": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "avatarFileId",
+                "avatarUrl",
+                "memberCount"
+              ]
+            }
+          }
+        },
+        "required": [
+          "user",
+          "isMe",
+          "isConnected",
+          "blockedByMe",
+          "online",
+          "lastSeenAt",
+          "commonGroups"
         ]
       },
       "Connection": {
@@ -909,7 +1002,7 @@
         "tags": [
           "users"
         ],
-        "summary": "Update display name or avatar (avatarFileId from a finished avatar upload, or null to remove)",
+        "summary": "Update name, About line or profile photo (avatarFileId from a finished avatar upload, or null to remove)",
         "security": [
           {
             "bearer": []
@@ -928,6 +1021,13 @@
                       "null"
                     ],
                     "maxLength": 50
+                  },
+                  "about": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 140
                   },
                   "avatarFileId": {
                     "type": [
@@ -1151,7 +1251,7 @@
         "tags": [
           "users"
         ],
-        "summary": "Find people by username prefix",
+        "summary": "Find people by username prefix or name (\"@abc\" = usernames only)",
         "security": [
           {
             "bearer": []
@@ -1255,6 +1355,72 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}/profile": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Profile screen: user, About, online/last seen, groups in common, block state",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
                 }
               }
             }

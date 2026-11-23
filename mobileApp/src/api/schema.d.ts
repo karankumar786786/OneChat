@@ -285,7 +285,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update display name or avatar (avatarFileId from a finished avatar upload, or null to remove) */
+        /** Update name, About line or profile photo (avatarFileId from a finished avatar upload, or null to remove) */
         patch: {
             parameters: {
                 query?: never;
@@ -297,6 +297,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         displayName?: string | null;
+                        about?: string | null;
                         /** Format: uuid */
                         avatarFileId?: string | null;
                     };
@@ -488,7 +489,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Find people by username prefix */
+        /** Find people by username prefix or name ("@abc" = usernames only) */
         get: {
             parameters: {
                 query: {
@@ -566,6 +567,71 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PublicUser"];
+                    };
+                };
+                /** @description Missing, invalid or expired access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Rate limited */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Profile screen: user, About, online/last seen, groups in common, block state */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Profile */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfile"];
                     };
                 };
                 /** @description Missing, invalid or expired access token */
@@ -3238,6 +3304,7 @@ export interface components {
             email: string;
             username: string | null;
             displayName: string | null;
+            about: string | null;
             /** Format: uuid */
             avatarFileId: string | null;
             /** Format: uri */
@@ -3268,6 +3335,8 @@ export interface components {
             id: string;
             username: string;
             displayName: string | null;
+            /** @description The profile's About line */
+            about: string | null;
             /**
              * Format: uuid
              * @description Use as the image cache key; the URL changes on every response.
@@ -3275,6 +3344,25 @@ export interface components {
             avatarFileId: string | null;
             /** Format: uri */
             avatarUrl: string | null;
+        };
+        UserProfile: {
+            user: components["schemas"]["PublicUser"];
+            isMe: boolean;
+            isConnected: boolean;
+            blockedByMe: boolean;
+            /** @description null when you can't see their presence */
+            online: boolean | null;
+            lastSeenAt: string | null;
+            commonGroups: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                /** Format: uuid */
+                avatarFileId: string | null;
+                /** Format: uri */
+                avatarUrl: string | null;
+                memberCount: number;
+            }[];
         };
         Connection: {
             user: components["schemas"]["PublicUser"];

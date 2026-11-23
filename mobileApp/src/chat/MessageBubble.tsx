@@ -5,6 +5,7 @@ import * as Sharing from "expo-sharing";
 import { Ionicons } from "@expo/vector-icons";
 import type { FileMeta, GroupMemberRow, MessageRow } from "../db/types";
 import { nameColor } from "../lib/colors";
+import { openImage } from "../ui/openImage";
 import { getDb } from "../db";
 import { setLocalUri } from "../db/queries";
 import { emitDbChange } from "../db/changes";
@@ -13,7 +14,7 @@ import { Ticks } from "../ui/components";
 import { colors, radius, space } from "../ui/theme";
 import { sizeLabel, timeLabel } from "../lib/format";
 
-export function MessageBubble({ message: m, replied, replyName, sender, showSender, myId, onLongPress }: {
+export function MessageBubble({ message: m, replied, replyName, sender, showSender, onSenderPress, myId, onLongPress }: {
   message: MessageRow;
   replied?: MessageRow;
   /** Name to show on a quoted message ("You", the peer, or the group member). */
@@ -21,6 +22,7 @@ export function MessageBubble({ message: m, replied, replyName, sender, showSend
   /** Group messages from others: who sent it. */
   sender?: GroupMemberRow | null;
   showSender?: boolean;
+  onSenderPress?: (userId: string) => void;
   myId: string;
   onLongPress: () => void;
 }) {
@@ -40,7 +42,14 @@ export function MessageBubble({ message: m, replied, replyName, sender, showSend
   return (
     <View style={[styles.wrap, mine ? styles.right : styles.left, reactions ? { marginBottom: space(3) } : null]}>
       <Pressable onLongPress={onLongPress} delayLongPress={250} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-        {senderLabel ? <Text style={[styles.sender, { color: nameColor(m.senderId ?? "") }]}>{senderLabel}</Text> : null}
+        {senderLabel ? (
+          <Text
+            style={[styles.sender, { color: nameColor(m.senderId ?? "") }]}
+            onPress={m.senderId && onSenderPress ? () => onSenderPress(m.senderId!) : undefined}
+          >
+            {senderLabel}
+          </Text>
+        ) : null}
         {m.forwarded && !m.deleted ? (
           <View style={styles.forwarded}>
             <Ionicons name="arrow-redo" size={12} color={colors.muted} />
@@ -117,7 +126,8 @@ function FilePart({ message: m, file }: { message: MessageRow; file: FileMeta })
         await setLocalUri(getDb(), m.id, uri);
         emitDbChange([m.peerId]);
       }
-      if (!isImage && (await Sharing.isAvailableAsync())) await Sharing.shareAsync(uri, { mimeType: file.mime });
+      if (isImage) openImage(uri, { title: file.name ?? undefined });
+      else if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: file.mime });
     } catch (e) {
       if (isExpiredError(e)) setExpired(true);
       else Alert.alert("Download failed", "Check your connection and try again.");

@@ -15,6 +15,8 @@ import { loadGroup } from "@/realtime/socket";
 import { uploadFile } from "@/files/upload";
 import { Avatar, Button, Field } from "@/ui/components";
 import { colors, radius, space } from "@/ui/theme";
+import { openImage } from "@/ui/openImage";
+import { uploadErrorMessage } from "@/profile/photo";
 import type { GroupMemberRow } from "@/db/types";
 
 export default function GroupInfo() {
@@ -45,7 +47,7 @@ export default function GroupInfo() {
       else await loadGroup(id);
       emitDbChange([id]);
     } catch (e) {
-      Alert.alert("Could not update the group", e instanceof ApiError ? e.message : "Check your connection and try again.");
+      Alert.alert("Could not update the group", e instanceof ApiError ? uploadErrorMessage(e) : "Check your connection and try again.");
     }
   }
 
@@ -77,6 +79,7 @@ export default function GroupInfo() {
     const label = m.displayName || `@${m.username}`;
     const buttons: { text: string; style?: "destructive" | "cancel"; onPress?: () => void }[] = [
       { text: `Message ${label}`, onPress: () => router.push(`/chat/${m.id}`) },
+      { text: `View ${label}`, onPress: () => router.push(`/user/${m.id}`) },
     ];
     if (isAdmin && isMember && !m.isCreator) {
       buttons.push(
@@ -116,10 +119,17 @@ export default function GroupInfo() {
   return (
     <ScrollView contentContainerStyle={{ padding: space(4), gap: space(4), paddingBottom: space(12) }}>
       <View style={[styles.card, { alignItems: "center" }]}>
-        <Pressable disabled={!canEdit} onPress={changeIcon} style={{ alignItems: "center", gap: space(2) }}>
+        <Pressable
+          disabled={!group.avatarUrl && !canEdit}
+          onPress={() => (group.avatarUrl ? openImage(group.avatarUrl, { cacheKey: group.avatarFileId, title: group.name }) : changeIcon())}
+        >
           <Avatar name={group.name} url={group.avatarUrl} cacheKey={group.avatarFileId} size={96} group />
-          {canEdit ? <Text style={{ color: colors.primary }}>Change group icon</Text> : null}
         </Pressable>
+        {canEdit ? (
+          <Pressable onPress={changeIcon}>
+            <Text style={{ color: colors.primary }}>{group.avatarUrl ? "Change group icon" : "Add group icon"}</Text>
+          </Pressable>
+        ) : null}
         <Text style={styles.title}>{group.name}</Text>
         <Text style={styles.muted}>Group · {members.length} participants</Text>
       </View>
@@ -203,8 +213,10 @@ export default function GroupInfo() {
           </Pressable>
         ) : null}
         {members.map((m) => (
-          <Pressable key={m.id} style={styles.member} onPress={() => memberActions(m)}>
-            <Avatar name={m.username} url={m.avatarUrl} cacheKey={m.avatarFileId} size={40} />
+          <Pressable key={m.id} style={styles.member} onPress={() => (m.id === myId ? router.push(`/user/${m.id}`) : memberActions(m))}>
+            <Pressable onPress={() => router.push(`/user/${m.id}`)} hitSlop={4}>
+              <Avatar name={m.username} url={m.avatarUrl} cacheKey={m.avatarFileId} size={40} />
+            </Pressable>
             <View style={{ flex: 1 }}>
               <Text style={styles.memberName}>{m.id === myId ? "You" : m.displayName || `@${m.username}`}</Text>
               {m.displayName && m.id !== myId ? <Text style={styles.muted}>@{m.username}</Text> : null}
