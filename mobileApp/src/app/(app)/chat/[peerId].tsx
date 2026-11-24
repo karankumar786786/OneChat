@@ -110,7 +110,7 @@ export default function ChatScreen() {
           <Avatar name={isGroup ? name : chat?.username} url={chat?.avatarUrl} cacheKey={chat?.avatarFileId} size={32} group={isGroup} />
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.headerName} numberOfLines={1}>{name}</Text>
-            <Text style={[styles.headerSub, highlighted && { color: colors.primary }]} numberOfLines={1}>{subtitle}</Text>
+            <Text style={[styles.headerSub, highlighted && { color: colors.accent }]} numberOfLines={1}>{subtitle}</Text>
           </View>
         </Pressable>
       ),
@@ -122,6 +122,7 @@ export default function ChatScreen() {
             if (isGroup) {
               Alert.alert(name, undefined, [
                 { text: "Group info", onPress: () => router.push(`/group/${peerId}`) },
+                ...(isMember && amAdmin ? [{ text: "Add participants", onPress: () => router.push(`/group/${peerId}/add`) }] : []),
                 clear,
                 ...(isMember
                   ? []
@@ -138,11 +139,11 @@ export default function ChatScreen() {
             }
           }}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color={colors.primary} />
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.accent} />
         </Pressable>
       ),
     });
-  }, [navigation, router, chat, name, subtitle, isGroup, isMember, blocked, toggleBlock, peerId, typing, presence, groupTyping]);
+  }, [navigation, router, chat, name, subtitle, isGroup, isMember, amAdmin, blocked, toggleBlock, peerId, typing, presence, groupTyping]);
 
   // Stop announcing "typing" when leaving the screen.
   useEffect(() => () => clearTimeout(typingState.current.idle), []);
@@ -239,7 +240,7 @@ export default function ChatScreen() {
 
       {!isGroup && blocked ? (
         <Pressable style={[styles.notice, { paddingBottom: insets.bottom + space(3) }]} onPress={toggleBlock}>
-          <Text style={{ color: colors.primary, fontWeight: "600" }}>You blocked this user. Tap to unblock.</Text>
+          <Text style={{ color: colors.accent, fontWeight: "600" }}>You blocked this user. Tap to unblock.</Text>
         </Pressable>
       ) : !isMember ? (
         <View style={[styles.notice, { paddingBottom: insets.bottom + space(3) }]}>
@@ -265,9 +266,9 @@ export default function ChatScreen() {
           {isGroup ? <MentionSuggestions text={text} members={members} myId={myId} onPick={(u) => setText(text.replace(/@([a-z0-9_.]*)$/i, `@${u} `))} /> : null}
           <View style={styles.inputRow}>
             <Pressable onPress={attach} hitSlop={8} style={styles.iconBtn}>
-              <Ionicons name="attach" size={24} color={colors.primary} />
+              <Ionicons name="attach" size={24} color={colors.accent} />
             </Pressable>
-            <TextInput style={styles.input} value={text} onChangeText={onChangeText} placeholder="Message" placeholderTextColor={colors.muted} multiline maxLength={4000} />
+            <TextInput style={styles.input} value={text} onChangeText={onChangeText} placeholder="Message" placeholderTextColor={colors.muted} multiline maxLength={4000} keyboardAppearance="dark" selectionColor={colors.accent} />
             <Pressable onPress={send} disabled={!text.trim()} style={[styles.sendBtn, !text.trim() && { opacity: 0.4 }]}>
               <Ionicons name="send" size={18} color="#fff" />
             </Pressable>
@@ -282,7 +283,7 @@ export default function ChatScreen() {
               {!selected.deleted && isMember ? (
                 <View style={styles.reactRow}>
                   {REACTIONS.map((e) => (
-                    <Pressable key={e} onPress={() => { void react(target, selected, e); closeMenu(); }} style={[styles.reactBtn, selected.myReaction === e && { backgroundColor: "#E7E6FF" }]}>
+                    <Pressable key={e} onPress={() => { void react(target, selected, e); closeMenu(); }} style={[styles.reactBtn, selected.myReaction === e && { backgroundColor: colors.primarySoft }]}>
                       <Text style={{ fontSize: 26 }}>{e}</Text>
                     </Pressable>
                   ))}
@@ -341,7 +342,7 @@ function MentionSuggestions({ text, members, myId, onPick }: { text: string; mem
 
 function MenuItem({ icon, label, onPress, danger }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; danger?: boolean }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: "#F1F2F6" }]}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: colors.pressed }]}>
       <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.text} />
       <Text style={{ fontSize: 16, color: danger ? colors.danger : colors.text }}>{label}</Text>
     </Pressable>
@@ -349,23 +350,23 @@ function MenuItem({ icon, label, onPress, danger }: { icon: keyof typeof Ionicon
 }
 
 const styles = StyleSheet.create({
-  headerName: { fontSize: 16, fontWeight: "700", color: colors.text },
-  headerSub: { fontSize: 12, color: colors.muted },
+  headerName: { fontSize: 16, lineHeight: 22, fontWeight: "700", color: colors.text },
+  headerSub: { fontSize: 12, lineHeight: 17, color: colors.muted },
   composer: { backgroundColor: colors.card, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: space(2), paddingHorizontal: space(2), gap: space(2) },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: space(2) },
   iconBtn: { height: 40, justifyContent: "center", paddingHorizontal: space(1) },
-  input: { flex: 1, minHeight: 40, maxHeight: 120, borderRadius: radius.lg, backgroundColor: colors.bg, paddingHorizontal: space(3), paddingTop: 10, paddingBottom: 10, fontSize: 16, color: colors.text },
+  input: { flex: 1, minHeight: 40, maxHeight: 120, borderRadius: radius.lg, backgroundColor: colors.elevated, paddingHorizontal: space(3), paddingTop: 10, paddingBottom: 10, fontSize: 16, color: colors.text },
   sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
-  replyBar: { flexDirection: "row", alignItems: "center", gap: space(2), borderLeftWidth: 3, borderLeftColor: colors.primary, backgroundColor: colors.bg, borderRadius: radius.sm, padding: space(2) },
-  replyLabel: { fontSize: 12, fontWeight: "700", color: colors.primary },
-  replyText: { fontSize: 13, color: colors.muted },
+  replyBar: { flexDirection: "row", alignItems: "center", gap: space(2), borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: colors.elevated, borderRadius: radius.sm, padding: space(2) },
+  replyLabel: { fontSize: 12, lineHeight: 17, fontWeight: "700", color: colors.accent },
+  replyText: { fontSize: 13, lineHeight: 18, color: colors.muted },
   notice: { alignItems: "center", padding: space(3), backgroundColor: colors.card, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   noticeText: { color: colors.muted, textAlign: "center" },
-  mentions: { backgroundColor: colors.bg, borderRadius: radius.md, paddingVertical: space(1) },
+  mentions: { backgroundColor: colors.elevated, borderRadius: radius.md, paddingVertical: space(1) },
   mentionRow: { flexDirection: "row", alignItems: "center", gap: space(2), paddingHorizontal: space(3), paddingVertical: space(2) },
-  dayChip: { alignSelf: "center", backgroundColor: "#E4E6EE", borderRadius: radius.pill, paddingHorizontal: space(3), paddingVertical: 4, marginVertical: space(2) },
+  dayChip: { alignSelf: "center", backgroundColor: colors.elevated, borderRadius: radius.pill, paddingHorizontal: space(3), paddingVertical: 4, marginVertical: space(2) },
   dayText: { fontSize: 12, fontWeight: "600", color: colors.muted },
-  backdrop: { flex: 1, backgroundColor: "rgba(10,12,20,0.35)", justifyContent: "center", padding: space(6) },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: "center", padding: space(6) },
   menu: { backgroundColor: colors.card, borderRadius: radius.lg, paddingVertical: space(2), overflow: "hidden" },
   reactRow: { flexDirection: "row", justifyContent: "space-around", paddingHorizontal: space(2), paddingBottom: space(2), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   reactBtn: { padding: space(1), borderRadius: radius.pill },

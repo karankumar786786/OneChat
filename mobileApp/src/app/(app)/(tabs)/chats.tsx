@@ -31,10 +31,10 @@ export default function Chats() {
       headerRight: () => (
         <View style={{ flexDirection: "row", gap: space(5), marginRight: space(4) }}>
           <Pressable onPress={() => router.push("/group/new")} hitSlop={12}>
-            <Ionicons name="people" size={22} color={colors.primary} />
+            <Ionicons name="people" size={22} color={colors.accent} />
           </Pressable>
           <Pressable onPress={() => router.push("/search")} hitSlop={12}>
-            <Ionicons name="search" size={22} color={colors.primary} />
+            <Ionicons name="search" size={22} color={colors.accent} />
           </Pressable>
         </View>
       ),
@@ -46,7 +46,7 @@ export default function Chats() {
       <FlatList
         data={chats}
         keyExtractor={(c) => c.peerId}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.muted} />}
         contentContainerStyle={chats.length ? undefined : { flex: 1 }}
         ListEmptyComponent={<Empty title="No chats yet" subtitle="Tap the search icon to find someone by username, or the people icon to start a group." />}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
@@ -55,17 +55,17 @@ export default function Chats() {
           const name = item.displayName || (item.username ? `@${item.username}` : "…");
           const isTyping = isGroup ? Object.keys(groupTyping[item.peerId] ?? {}).length > 0 : Boolean(typing[item.peerId]);
           return (
-            <Pressable style={({ pressed }) => [styles.row, pressed && { backgroundColor: "#EEF0F5" }]} onPress={() => router.push(`/chat/${item.peerId}`)}>
+            <Pressable style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.pressed }]} onPress={() => router.push(`/chat/${item.peerId}`)}>
               <Pressable onPress={() => router.push(isGroup ? `/group/${item.peerId}` : `/user/${item.peerId}`)} hitSlop={4}>
                 <Avatar name={isGroup ? item.displayName : item.username} url={item.avatarUrl} cacheKey={item.avatarFileId} online={!isGroup && presence[item.peerId]?.online} group={isGroup} />
               </Pressable>
               <View style={{ flex: 1, gap: 2 }}>
                 <View style={styles.line}>
                   <Text style={styles.name} numberOfLines={1}>{name}</Text>
-                  {item.lastAt ? <Text style={[styles.time, item.unread ? { color: colors.primary } : null]}>{timeLabel(item.lastAt)}</Text> : null}
+                  {item.lastAt ? <Text style={[styles.time, item.unread ? { color: colors.accent } : null]}>{timeLabel(item.lastAt)}</Text> : null}
                 </View>
                 <View style={styles.line}>
-                  <Text style={[styles.preview, isTyping && { color: colors.primary }]} numberOfLines={1}>
+                  <Text style={[styles.preview, isTyping && { color: colors.accent }]} numberOfLines={1}>
                     {isTyping ? "typing…" : (item.lastText ?? "Say hi 👋")}
                   </Text>
                   {item.unread ? <Text style={styles.badge}>{item.unread}</Text> : null}
@@ -83,8 +83,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.card },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 76 },
   line: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space(2) },
-  name: { fontSize: 16, fontWeight: "600", color: colors.text, flexShrink: 1 },
+  name: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.text, flexShrink: 1 },
   time: { fontSize: 12, color: colors.muted },
-  preview: { fontSize: 14, color: colors.muted, flexShrink: 1 },
+  preview: { fontSize: 14, lineHeight: 20, color: colors.muted, flexShrink: 1 },
   badge: { minWidth: 20, paddingHorizontal: 6, height: 20, borderRadius: 10, backgroundColor: colors.primary, color: "#fff", fontSize: 12, fontWeight: "700", textAlign: "center", lineHeight: 20, overflow: "hidden" },
 });

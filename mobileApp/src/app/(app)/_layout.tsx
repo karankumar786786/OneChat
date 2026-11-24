@@ -5,7 +5,7 @@ export default function AppLayout() {
   return (
     <Stack
       screenOptions={{
-        headerTintColor: colors.primary,
+        headerTintColor: colors.accent,
         // Without this iOS shows the route group name "(tabs)" on back buttons.
         headerBackTitle: "Back",
         headerTitleStyle: { color: colors.text },

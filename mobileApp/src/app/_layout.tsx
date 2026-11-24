@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { DarkTheme, Stack, ThemeProvider, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -9,6 +9,20 @@ import { useAuth } from "@/auth/store";
 import { queryClient } from "@/lib/queryClient";
 import { endSession, startSession } from "@/session";
 import { colors } from "@/ui/theme";
+
+/** Headers, tab bar and screen backgrounds follow the black + royal blue theme. */
+const navTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: colors.accent,
+    background: colors.bg,
+    card: colors.card,
+    text: colors.text,
+    border: colors.border,
+    notification: colors.primary,
+  },
+};
 
 export default function RootLayout() {
   const status = useAuth((s) => s.status);
@@ -53,15 +67,16 @@ export default function RootLayout() {
   if (status === "loading" || (inApp && readyFor !== userId)) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider value={navTheme}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
           <Stack.Screen name="index" />
           <Stack.Protected guard={!signedIn}>
@@ -75,6 +90,7 @@ export default function RootLayout() {
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

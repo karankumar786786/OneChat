@@ -18,7 +18,7 @@ export default function StatusTab() {
     <FlatList
       data={feed.data ?? []}
       keyExtractor={(e) => e.user.id}
-      refreshControl={<RefreshControl refreshing={feed.isFetching} onRefresh={() => { void feed.refetch(); void mine.refetch(); }} />}
+      refreshControl={<RefreshControl tintColor={colors.muted} refreshing={feed.isFetching} onRefresh={() => { void feed.refetch(); void mine.refetch(); }} />}
       ListHeaderComponent={
         <View>
           <Pressable style={styles.row} onPress={() => (myCount ? router.push(`/status/${me!.id}`) : router.push("/status/new"))}>
@@ -33,7 +33,7 @@ export default function StatusTab() {
               <Text style={styles.sub}>{myCount ? `${myCount} update${myCount > 1 ? "s" : ""} · disappears after 24h` : "Tap to add a status"}</Text>
             </View>
             <Pressable hitSlop={10} onPress={() => router.push("/status/new")}>
-              <Ionicons name="create-outline" size={22} color={colors.primary} />
+              <Ionicons name="create-outline" size={22} color={colors.accent} />
             </Pressable>
           </Pressable>
           <Text style={styles.section}>Recent updates</Text>
@@ -55,7 +55,7 @@ export default function StatusTab() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.card },
-  name: { fontSize: 16, fontWeight: "600", color: colors.text },
+  name: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.text },
   sub: { fontSize: 13, color: colors.muted },
   section: { fontSize: 13, fontWeight: "700", color: colors.muted, paddingHorizontal: space(4), paddingTop: space(5), paddingBottom: space(2), textTransform: "uppercase" },
   plus: { position: "absolute", right: 0, bottom: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.card },

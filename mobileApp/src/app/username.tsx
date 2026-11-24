@@ -44,7 +44,7 @@ export default function ProfileSetup() {
           <Text style={styles.subtitle}>Add your name and an optional photo. People find you by your username.</Text>
           <Pressable onPress={async () => setPhoto((await pickSquarePhoto()) ?? photo)} style={{ alignItems: "center", gap: space(2) }}>
             <Avatar name={name || username || "?"} url={photo?.uri} size={96} />
-            <Text style={{ color: colors.primary }}>{photo ? "Change photo" : "Add photo"}</Text>
+            <Text style={{ color: colors.accent }}>{photo ? "Change photo" : "Add photo"}</Text>
           </Pressable>
           <View style={{ gap: space(3) }}>
             <Field label="Your name" value={name} onChangeText={setName} placeholder="e.g. Karan Sharma" maxLength={50} autoComplete="name" textContentType="name" />

@@ -45,7 +45,7 @@ export function MemberPicker({ selected, onToggle, exclude = [], header }: { sel
               <Text style={styles.name}>{item.displayName || `@${item.username}`}</Text>
               {item.displayName ? <Text style={styles.sub}>@{item.username}</Text> : null}
             </View>
-            <Ionicons name={on ? "checkmark-circle" : "ellipse-outline"} size={24} color={on ? colors.primary : colors.border} />
+            <Ionicons name={on ? "checkmark-circle" : "ellipse-outline"} size={24} color={on ? colors.accent : colors.border} />
           </Pressable>
         );
       }}
@@ -55,6 +55,6 @@ export function MemberPicker({ selected, onToggle, exclude = [], header }: { sel
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  name: { fontSize: 16, fontWeight: "600", color: colors.text },
+  name: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.text },
   sub: { fontSize: 13, color: colors.muted },
 });

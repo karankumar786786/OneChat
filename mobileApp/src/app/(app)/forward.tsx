@@ -37,6 +37,6 @@ export default function Forward() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space(3), padding: space(3), paddingHorizontal: space(4), backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  name: { fontSize: 16, fontWeight: "600", color: colors.text },
+  name: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.text },
   sub: { fontSize: 13, color: colors.muted },
 });

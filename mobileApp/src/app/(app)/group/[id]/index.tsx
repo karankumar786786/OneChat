@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from "react-native";
+import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
@@ -25,6 +25,13 @@ export default function GroupInfo() {
   const myId = useAuth((s) => s.me?.id ?? "");
   const router = useRouter();
   const members = membersOf(group);
+  // You first, then admins, then everyone else by name (as WhatsApp lists them).
+  const sortedMembers = [...members].sort((a, b) => {
+    if (a.id === myId) return -1;
+    if (b.id === myId) return 1;
+    if (a.role !== b.role) return a.role === "admin" ? -1 : 1;
+    return (a.displayName || a.username).localeCompare(b.displayName || b.username);
+  });
   const isAdmin = group?.myRole === "admin";
   const isMember = group?.isMember === 1;
   const canEdit = isMember && (isAdmin || group?.onlyAdminsCanEditInfo === 0);
@@ -74,27 +81,64 @@ export default function GroupInfo() {
 
   const inviteUrl = invite ? Linking.createURL(`/join/${invite}`) : null;
 
+  /** WhatsApp-style action sheet for a participant. Admin actions only appear for admins. */
   function memberActions(m: GroupMemberRow) {
-    if (m.id === myId) return;
+    if (m.id === myId) return router.push(`/user/${m.id}`);
     const label = m.displayName || `@${m.username}`;
-    const buttons: { text: string; style?: "destructive" | "cancel"; onPress?: () => void }[] = [
-      { text: `Message ${label}`, onPress: () => router.push(`/chat/${m.id}`) },
-      { text: `View ${label}`, onPress: () => router.push(`/user/${m.id}`) },
+    const memberPath = { params: { path: { id, userId: m.id } } };
+    const actions: { text: string; destructive?: boolean; run: () => void }[] = [
+      { text: `Message ${label}`, run: () => router.push(`/chat/${m.id}`) },
+      { text: `View ${label}`, run: () => router.push(`/user/${m.id}`) },
     ];
     if (isAdmin && isMember && !m.isCreator) {
-      buttons.push(
+      actions.push(
         m.role === "admin"
-          ? { text: "Dismiss as admin", onPress: () => void run(() => unwrap(api.DELETE("/groups/{id}/admins/{userId}", { params: { path: { id, userId: m.id } } }))) }
-          : { text: "Make group admin", onPress: () => void run(() => unwrap(api.POST("/groups/{id}/admins/{userId}", { params: { path: { id, userId: m.id } } }))) },
+          ? { text: "Dismiss as admin", run: () => void run(() => unwrap(api.DELETE("/groups/{id}/admins/{userId}", memberPath))) }
+          : { text: "Make group admin", run: () => void run(() => unwrap(api.POST("/groups/{id}/admins/{userId}", memberPath))) },
         {
           text: `Remove ${label}`,
-          style: "destructive",
-          onPress: () => void run(async () => void (await api.DELETE("/groups/{id}/members/{userId}", { params: { path: { id, userId: m.id } } }))),
+          destructive: true,
+          run: () =>
+            Alert.alert(`Remove ${label} from "${group?.name}"?`, undefined, [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Remove",
+                style: "destructive",
+                onPress: () => void run(async () => void (await unwrap(api.DELETE("/groups/{id}/members/{userId}", memberPath)))),
+              },
+            ]),
         },
       );
     }
-    buttons.push({ text: "Cancel", style: "cancel" });
-    Alert.alert(label, undefined, buttons);
+    if (Platform.OS === "ios") {
+      const options = [...actions.map((a) => a.text), "Cancel"];
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: label,
+          options,
+          cancelButtonIndex: options.length - 1,
+          destructiveButtonIndex: actions.findIndex((a) => a.destructive),
+          userInterfaceStyle: "dark",
+        },
+        (i) => actions[i]?.run(),
+      );
+    } else {
+      Alert.alert(label, undefined, [
+        ...actions.map((a) => ({ text: a.text, style: a.destructive ? ("destructive" as const) : undefined, onPress: a.run })),
+        { text: "Cancel", style: "cancel" as const },
+      ]);
+    }
+  }
+
+  async function shareInvite() {
+    try {
+      const { code } = await unwrap(api.GET("/groups/{id}/invite", path));
+      setInvite(code);
+      const url = Linking.createURL(`/join/${code}`);
+      await Share.share({ message: `Join my group "${group?.name}": ${url}` });
+    } catch (e) {
+      Alert.alert("Invite link", e instanceof ApiError ? e.message : "Could not load the link");
+    }
   }
 
   function exitGroup() {
@@ -127,7 +171,7 @@ export default function GroupInfo() {
         </Pressable>
         {canEdit ? (
           <Pressable onPress={changeIcon}>
-            <Text style={{ color: colors.primary }}>{group.avatarUrl ? "Change group icon" : "Add group icon"}</Text>
+            <Text style={{ color: colors.accent }}>{group.avatarUrl ? "Change group icon" : "Add group icon"}</Text>
           </Pressable>
         ) : null}
         <Text style={styles.title}>{group.name}</Text>
@@ -155,6 +199,7 @@ export default function GroupInfo() {
         <View style={styles.card}>
           <Row label="Mute notifications" hint="@mentions still notify you">
             <Switch
+              trackColor={{ true: colors.primary, false: colors.border }}
               value={muted}
               onValueChange={(on) =>
                 void run(async () => {
@@ -172,10 +217,10 @@ export default function GroupInfo() {
         <View style={styles.card}>
           <Text style={styles.section}>Group settings (admins)</Text>
           <Row label="Only admins can send messages">
-            <Switch value={group.onlyAdminsCanSend === 1} onValueChange={(v) => void run(() => unwrap(api.PATCH("/groups/{id}/settings", { ...path, body: { onlyAdminsCanSend: v } })))} />
+            <Switch trackColor={{ true: colors.primary, false: colors.border }} value={group.onlyAdminsCanSend === 1} onValueChange={(v) => void run(() => unwrap(api.PATCH("/groups/{id}/settings", { ...path, body: { onlyAdminsCanSend: v } })))} />
           </Row>
           <Row label="Only admins can edit group info">
-            <Switch value={group.onlyAdminsCanEditInfo === 1} onValueChange={(v) => void run(() => unwrap(api.PATCH("/groups/{id}/settings", { ...path, body: { onlyAdminsCanEditInfo: v } })))} />
+            <Switch trackColor={{ true: colors.primary, false: colors.border }} value={group.onlyAdminsCanEditInfo === 1} onValueChange={(v) => void run(() => unwrap(api.PATCH("/groups/{id}/settings", { ...path, body: { onlyAdminsCanEditInfo: v } })))} />
           </Row>
           <Text style={styles.section}>Invite via link</Text>
           {inviteUrl ? (
@@ -205,25 +250,50 @@ export default function GroupInfo() {
       <View style={[styles.card, { paddingHorizontal: 0 }]}>
         <Text style={[styles.section, { paddingHorizontal: space(4) }]}>{members.length} participants</Text>
         {isAdmin && isMember ? (
-          <Pressable style={styles.member} onPress={() => router.push(`/group/${id}/add`)}>
-            <View style={styles.addIcon}>
-              <Ionicons name="person-add" size={18} color="#fff" />
-            </View>
-            <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 16 }}>Add participants</Text>
-          </Pressable>
-        ) : null}
-        {members.map((m) => (
-          <Pressable key={m.id} style={styles.member} onPress={() => (m.id === myId ? router.push(`/user/${m.id}`) : memberActions(m))}>
-            <Pressable onPress={() => router.push(`/user/${m.id}`)} hitSlop={4}>
-              <Avatar name={m.username} url={m.avatarUrl} cacheKey={m.avatarFileId} size={40} />
+          <>
+            <Pressable style={styles.member} onPress={() => router.push(`/group/${id}/add`)} accessibilityRole="button">
+              <View style={styles.addIcon}>
+                <Ionicons name="person-add" size={18} color="#fff" />
+              </View>
+              <Text style={styles.actionText}>Add participants</Text>
             </Pressable>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.memberName}>{m.id === myId ? "You" : m.displayName || `@${m.username}`}</Text>
-              {m.displayName && m.id !== myId ? <Text style={styles.muted}>@{m.username}</Text> : null}
-            </View>
-            {m.role === "admin" ? <Text style={styles.badge}>Group admin</Text> : null}
-          </Pressable>
-        ))}
+            <Pressable style={styles.member} onPress={shareInvite} accessibilityRole="button">
+              <View style={styles.addIcon}>
+                <Ionicons name="link" size={18} color="#fff" />
+              </View>
+              <Text style={styles.actionText}>Invite via link</Text>
+            </Pressable>
+          </>
+        ) : isMember ? (
+          <Text style={[styles.muted, { paddingHorizontal: space(4) }]}>
+            Only group admins can add or remove participants and change admins.
+          </Text>
+        ) : null}
+        {sortedMembers.map((m) => {
+          const label = m.id === myId ? "You" : m.displayName || `@${m.username}`;
+          const manageable = isAdmin && isMember && m.id !== myId;
+          return (
+            <Pressable
+              key={m.id}
+              style={({ pressed }) => [styles.member, pressed && { backgroundColor: colors.pressed }]}
+              onPress={() => memberActions(m)}
+              accessibilityRole="button"
+              accessibilityLabel={`${label}${m.role === "admin" ? ", group admin" : ""}`}
+              accessibilityHint={manageable ? "Opens actions: message, view, admin, remove" : "Opens options"}
+            >
+              <Avatar name={m.displayName || m.username} url={m.avatarUrl} cacheKey={m.avatarFileId} size={40} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.memberName} numberOfLines={1}>{label}</Text>
+                <Text style={styles.muted} numberOfLines={1}>@{m.username}</Text>
+              </View>
+              <View style={{ alignItems: "flex-end", gap: 4 }}>
+                {m.role === "admin" ? <Text style={styles.badge}>Group admin</Text> : null}
+                {m.isCreator ? <Text style={styles.creator}>Creator</Text> : null}
+              </View>
+              {manageable ? <Ionicons name="ellipsis-horizontal" size={20} color={colors.muted} /> : null}
+            </Pressable>
+          );
+        })}
       </View>
 
       {isMember ? (
@@ -256,13 +326,15 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space(4), gap: space(3) },
-  title: { fontSize: 22, fontWeight: "700", color: colors.text, marginTop: space(2) },
+  title: { fontSize: 22, lineHeight: 30, fontWeight: "700", color: colors.text, marginTop: space(2) },
   muted: { color: colors.muted, fontSize: 13 },
   section: { fontSize: 13, fontWeight: "700", color: colors.muted, textTransform: "uppercase" },
   row: { flexDirection: "row", alignItems: "center", gap: space(3) },
-  link: { color: colors.primary, fontSize: 14 },
+  link: { color: colors.accent, fontSize: 14 },
   member: { flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: space(4), paddingVertical: space(2.5) },
-  memberName: { fontSize: 16, fontWeight: "600", color: colors.text },
-  badge: { fontSize: 11, color: colors.primary, borderWidth: 1, borderColor: colors.primary, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: "hidden" },
+  memberName: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.text },
+  badge: { fontSize: 11, color: colors.accent, borderWidth: 1, borderColor: colors.accent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: "hidden" },
+  actionText: { color: colors.accent, fontWeight: "600", fontSize: 16 },
+  creator: { fontSize: 11, color: colors.muted },
   addIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
 });

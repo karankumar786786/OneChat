@@ -29,7 +29,7 @@ export default function NewGroup() {
       headerRight: () =>
         step === 1 ? (
           <Pressable disabled={selected.size === 0} onPress={() => setStep(2)} hitSlop={10}>
-            <Text style={{ color: selected.size ? colors.primary : colors.muted, fontWeight: "700", fontSize: 16 }}>
+            <Text style={{ color: selected.size ? colors.accent : colors.muted, fontWeight: "700", fontSize: 16 }}>
               Next{selected.size ? ` (${selected.size})` : ""}
             </Text>
           </Pressable>
@@ -96,7 +96,7 @@ export default function NewGroup() {
     <ScrollView contentContainerStyle={{ padding: space(4), gap: space(4) }} keyboardShouldPersistTaps="handled">
       <Pressable onPress={pickIcon} style={{ alignItems: "center", gap: space(2) }}>
         <Avatar name={name || "?"} url={icon?.uri} size={84} group />
-        <Text style={{ color: colors.primary }}>{icon ? "Change icon" : "Add group icon"}</Text>
+        <Text style={{ color: colors.accent }}>{icon ? "Change icon" : "Add group icon"}</Text>
       </Pressable>
       <Field label="Group name" value={name} onChangeText={setName} placeholder="e.g. Weekend trip" maxLength={100} autoFocus />
       <Field label="Description (optional)" value={description} onChangeText={setDescription} placeholder="What is this group about?" maxLength={512} multiline style={{ height: 80, paddingTop: 12 }} />

@@ -100,7 +100,7 @@ export default function StatusViewer() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View style={[styles.content, current.type === "text" && { backgroundColor: current.bg ?? "#4F46E5" }]}>
+      <View style={[styles.content, current.type === "text" && { backgroundColor: current.bg ?? "#4169E1" }]}>
         {current.type === "text" ? <Text style={styles.bigText}>{current.text}</Text> : null}
         {current.type === "image" && current.media?.url ? (
           <Image source={{ uri: current.media.url, cacheKey: current.media.fileId }} style={StyleSheet.absoluteFill} contentFit="contain" />
@@ -164,6 +164,7 @@ export default function StatusViewer() {
             </View>
             <View style={styles.commentRow}>
               <TextInput
+                keyboardAppearance="dark"
                 style={styles.commentInput}
                 value={comment}
                 onChangeText={setComment}

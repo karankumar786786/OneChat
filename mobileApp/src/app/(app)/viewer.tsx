@@ -25,5 +25,5 @@ export default function Viewer() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#000" },
   bar: { position: "absolute", left: 0, right: 0, top: 0, flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 16, paddingBottom: 12, backgroundColor: "rgba(0,0,0,0.35)" },
-  title: { color: "#fff", fontSize: 17, fontWeight: "600", flexShrink: 1 },
+  title: { color: "#fff", fontSize: 17, lineHeight: 23, fontWeight: "600", flexShrink: 1 },
 });

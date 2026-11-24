@@ -36,7 +36,7 @@ export default function AddParticipants() {
     navigation.setOptions({
       headerRight: () => (
         <Pressable disabled={!selected.size || busy} onPress={add} hitSlop={10}>
-          <Text style={{ color: selected.size ? colors.primary : colors.muted, fontWeight: "700", fontSize: 16 }}>
+          <Text style={{ color: selected.size ? colors.accent : colors.muted, fontWeight: "700", fontSize: 16 }}>
             Add{selected.size ? ` (${selected.size})` : ""}
           </Text>
         </Pressable>

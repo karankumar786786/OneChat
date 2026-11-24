@@ -61,7 +61,7 @@ export default function Settings() {
       <View style={styles.card}>
         <Pressable onPress={photoMenu} style={{ alignItems: "center", gap: space(2) }}>
           <Avatar name={me.displayName || me.username} url={me.avatarUrl} cacheKey={me.avatarFileId} size={96} />
-          <Text style={{ color: colors.primary }}>{uploading ? "Uploading…" : me.avatarUrl ? "Edit photo" : "Add photo"}</Text>
+          <Text style={{ color: colors.accent }}>{uploading ? "Uploading…" : me.avatarUrl ? "Edit photo" : "Add photo"}</Text>
         </Pressable>
         <Pressable onPress={() => router.push(`/user/${me.id}`)} style={{ alignItems: "center" }}>
           <Text style={styles.name}>{me.displayName || `@${me.username}`}</Text>
@@ -95,7 +95,7 @@ export default function Settings() {
                   void qc.invalidateQueries({ queryKey: ["blocks"] });
                 }}
               >
-                <Text style={{ color: colors.primary, fontWeight: "600" }}>Unblock</Text>
+                <Text style={{ color: colors.accent, fontWeight: "600" }}>Unblock</Text>
               </Pressable>
             </View>
           ))
@@ -120,8 +120,8 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space(4), alignItems: "center", gap: space(1) },
-  name: { fontSize: 20, fontWeight: "700", color: colors.text, marginTop: space(2) },
-  username: { fontSize: 15, color: colors.primary },
+  name: { fontSize: 20, lineHeight: 27, fontWeight: "700", color: colors.text, marginTop: space(2) },
+  username: { fontSize: 15, color: colors.accent },
   muted: { color: colors.muted },
   section: { fontSize: 13, fontWeight: "700", color: colors.muted, textTransform: "uppercase", marginBottom: space(2) },
   blockRow: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(2) },

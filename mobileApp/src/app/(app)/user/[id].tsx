@@ -51,7 +51,7 @@ export default function UserProfile() {
         </Pressable>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.username}>@{user.username}</Text>
-        {status ? <Text style={[styles.status, online && !blockedByMe ? { color: colors.primary } : null]}>{status}</Text> : null}
+        {status ? <Text style={[styles.status, online && !blockedByMe ? { color: colors.accent } : null]}>{status}</Text> : null}
 
         <View style={styles.actions}>
           {isMe ? (
@@ -120,7 +120,7 @@ export default function UserProfile() {
 function Action({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.action, pressed && { opacity: 0.6 }]}>
-      <Ionicons name={icon} size={22} color={colors.primary} />
+      <Ionicons name={icon} size={22} color={colors.accent} />
       <Text style={styles.actionLabel}>{label}</Text>
     </Pressable>
   );
@@ -128,17 +128,17 @@ function Action({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap
 
 const styles = StyleSheet.create({
   hero: { alignItems: "center", backgroundColor: colors.card, paddingVertical: space(6), gap: space(1) },
-  name: { fontSize: 24, fontWeight: "700", color: colors.text, marginTop: space(3) },
+  name: { fontSize: 24, lineHeight: 32, fontWeight: "700", color: colors.text, marginTop: space(3) },
   username: { fontSize: 15, color: colors.muted },
   status: { fontSize: 13, color: colors.muted, marginTop: space(1) },
   actions: { flexDirection: "row", gap: space(3), marginTop: space(4) },
   action: { width: 92, alignItems: "center", gap: space(1), paddingVertical: space(3), borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
-  actionLabel: { color: colors.primary, fontSize: 13, fontWeight: "600" },
+  actionLabel: { color: colors.accent, fontSize: 13, fontWeight: "600" },
   card: { backgroundColor: colors.card, marginTop: space(3), padding: space(4), gap: space(2) },
   label: { fontSize: 13, color: colors.muted },
-  about: { fontSize: 16, color: colors.text },
+  about: { fontSize: 16, lineHeight: 22, color: colors.text },
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: space(4), paddingVertical: space(2) },
-  rowTitle: { fontSize: 16, fontWeight: "600", color: colors.text },
+  rowTitle: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.text },
   muted: { color: colors.muted, fontSize: 13 },
   dangerRow: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(2) },
   danger: { color: colors.danger, fontSize: 16 },

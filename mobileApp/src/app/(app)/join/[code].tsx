@@ -59,6 +59,6 @@ export default function JoinGroup() {
 const styles = StyleSheet.create({
   wrap: { flex: 1, padding: space(6), justifyContent: "center", gap: space(6) },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space(6), alignItems: "center", gap: space(2) },
-  title: { fontSize: 22, fontWeight: "700", color: colors.text, marginTop: space(2) },
+  title: { fontSize: 22, lineHeight: 30, fontWeight: "700", color: colors.text, marginTop: space(2) },
   muted: { color: colors.muted },
 });

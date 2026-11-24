@@ -57,8 +57,8 @@ export function MessageBubble({ message: m, replied, replyName, sender, showSend
         <Pressable onLongPress={onLongPress} delayLongPress={250} style={{ gap: 4 }}>
         {m.forwarded && !m.deleted ? (
           <View style={styles.forwarded}>
-            <Ionicons name="arrow-redo" size={12} color={colors.muted} />
-            <Text style={styles.forwardedText}>Forwarded</Text>
+            <Ionicons name="arrow-redo" size={12} color={mine ? colors.bubbleMeta : colors.muted} />
+            <Text style={[styles.forwardedText, mine && { color: colors.bubbleMeta }]}>Forwarded</Text>
           </View>
         ) : null}
         {replied && !m.deleted ? (
@@ -69,7 +69,7 @@ export function MessageBubble({ message: m, replied, replyName, sender, showSend
         ) : null}
 
         {m.deleted ? (
-          <Text style={styles.deleted}>{m.deleted === 2 ? "🚫 This message was deleted by an admin" : "🚫 This message was deleted"}</Text>
+          <Text style={[styles.deleted, mine && { color: colors.bubbleMeta }]}>{m.deleted === 2 ? "🚫 This message was deleted by an admin" : "🚫 This message was deleted"}</Text>
         ) : (
           <>
             {file ? <FilePart message={m} file={file} /> : null}
@@ -78,7 +78,7 @@ export function MessageBubble({ message: m, replied, replyName, sender, showSend
         )}
 
         <View style={styles.meta}>
-          <Text style={styles.time}>{timeLabel(m.sentAt)}</Text>
+          <Text style={[styles.time, mine && { color: colors.bubbleMeta }]}>{timeLabel(m.sentAt)}</Text>
           {mine ? <Ticks tick={m.tick} /> : null}
         </View>
         </Pressable>
@@ -162,13 +162,13 @@ function FilePart({ message: m, file }: { message: MessageRow; file: FileMeta })
   return (
     <Pressable style={styles.fileRow} onPress={open}>
       {busy || (!file.id && m.tick === "pending") ? (
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.onBubbleAccent} />
       ) : (
-        <Ionicons name={isImage ? "image" : file.mime.startsWith("video/") ? "videocam" : "document"} size={26} color={colors.primary} />
+        <Ionicons name={isImage ? "image" : file.mime.startsWith("video/") ? "videocam" : "document"} size={26} color={colors.onBubbleAccent} />
       )}
       <View style={{ flexShrink: 1 }}>
         <Text style={styles.fileName} numberOfLines={1}>{file.name ?? "File"}</Text>
-        <Text style={styles.fileSub}>{sizeLabel(file.size)} · {m.localUri ? "tap to open" : "tap to download"}</Text>
+        <Text style={[styles.fileSub, m.fromMe === 1 && { color: colors.bubbleMeta }]}>{sizeLabel(file.size)} · {m.localUri ? "tap to open" : "tap to download"}</Text>
       </View>
     </Pressable>
   );
@@ -176,28 +176,28 @@ function FilePart({ message: m, file }: { message: MessageRow; file: FileMeta })
 
 const styles = StyleSheet.create({
   wrap: { maxWidth: "82%", marginVertical: 2 },
-  systemWrap: { alignSelf: "center", backgroundColor: "#E9EAF2", borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(1.5), marginVertical: space(1), maxWidth: "88%" },
-  systemText: { fontSize: 12.5, color: colors.muted, textAlign: "center" },
-  sender: { fontSize: 13, fontWeight: "700" },
-  mention: { color: colors.primary, fontWeight: "700" },
+  systemWrap: { alignSelf: "center", backgroundColor: colors.elevated, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(1.5), marginVertical: space(1), maxWidth: "88%" },
+  systemText: { fontSize: 12.5, lineHeight: 18, color: colors.muted, textAlign: "center" },
+  sender: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  mention: { color: colors.onBubbleAccent, fontWeight: "700" },
   mentionedMe: { },
   left: { alignSelf: "flex-start" },
   right: { alignSelf: "flex-end" },
   bubble: { borderRadius: radius.lg, paddingHorizontal: space(3), paddingTop: space(2), paddingBottom: space(1), gap: 4 },
   mine: { backgroundColor: colors.mine, borderBottomRightRadius: 4 },
   theirs: { backgroundColor: colors.theirs, borderBottomLeftRadius: 4 },
-  text: { fontSize: 16, color: colors.text, lineHeight: 21 },
+  text: { fontSize: 16, color: colors.text, lineHeight: 22 },
   deleted: { fontSize: 15, fontStyle: "italic", color: colors.muted },
   meta: { flexDirection: "row", alignSelf: "flex-end", alignItems: "center" },
   time: { fontSize: 11, color: colors.muted },
   forwarded: { flexDirection: "row", alignItems: "center", gap: 4 },
   forwardedText: { fontSize: 12, fontStyle: "italic", color: colors.muted },
-  quote: { borderLeftWidth: 3, borderLeftColor: colors.primary, backgroundColor: "rgba(79,70,229,0.07)", borderRadius: radius.sm, padding: space(2) },
-  quoteName: { fontSize: 12, fontWeight: "700", color: colors.primary },
-  quoteText: { fontSize: 13, color: colors.muted },
+  quote: { borderLeftWidth: 3, borderLeftColor: colors.onBubbleAccent, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: radius.sm, padding: space(2) },
+  quoteName: { fontSize: 12, lineHeight: 17, fontWeight: "700", color: colors.onBubbleAccent },
+  quoteText: { fontSize: 13, lineHeight: 18, color: colors.muted },
   reactions: { position: "absolute", bottom: -14, backgroundColor: colors.card, borderRadius: radius.pill, paddingHorizontal: 6, paddingVertical: 2, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   fileRow: { flexDirection: "row", alignItems: "center", gap: space(2), paddingVertical: space(1), minWidth: 180 },
-  fileName: { fontSize: 15, fontWeight: "600", color: colors.text },
+  fileName: { fontSize: 15, lineHeight: 20, fontWeight: "600", color: colors.text },
   fileSub: { fontSize: 12, color: colors.muted },
   image: { width: 220, height: 220, borderRadius: radius.md },
 });

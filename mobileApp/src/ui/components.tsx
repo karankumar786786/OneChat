@@ -23,9 +23,9 @@ export function Avatar({ name, url, cacheKey, size = 44, online, ring, group }: 
       ) : (
         <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
           {group ? (
-            <Ionicons name="people" size={size / 2} color={colors.primary} />
+            <Ionicons name="people" size={size / 2} color={colors.onBubbleAccent} />
           ) : (
-            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: size / 2.6 }}>{initials}</Text>
+            <Text style={{ color: colors.onBubbleAccent, fontWeight: "700", fontSize: size / 2.6 }}>{initials}</Text>
           )}
         </View>
       )}
@@ -52,7 +52,7 @@ export function Button({ title, onPress, loading, variant = "primary", style, di
   disabled?: boolean;
 }) {
   const bg = variant === "primary" ? colors.primary : "transparent";
-  const fg = variant === "primary" ? colors.primaryText : variant === "danger" ? colors.danger : colors.primary;
+  const fg = variant === "primary" ? colors.primaryText : variant === "danger" ? colors.danger : colors.accent;
   return (
     <Pressable
       onPress={onPress}
@@ -69,7 +69,7 @@ export function Field(props: TextInputProps & { label?: string; error?: string |
   return (
     <View style={{ gap: space(1) }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput placeholderTextColor={colors.muted} style={[styles.input, error ? { borderColor: colors.danger } : null, style]} {...rest} />
+      <TextInput placeholderTextColor={colors.muted} keyboardAppearance="dark" selectionColor={colors.accent} style={[styles.input, error ? { borderColor: colors.danger } : null, style]} {...rest} />
       {error ? <Text style={styles.error}>{error}</Text> : hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
@@ -85,13 +85,13 @@ export function Empty({ title, subtitle }: { title: string; subtitle?: string })
 }
 
 const styles = StyleSheet.create({
-  avatarFallback: { backgroundColor: "#E7E6FF", alignItems: "center", justifyContent: "center" },
+  avatarFallback: { backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
   onlineDot: { position: "absolute", right: 2, bottom: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.online, borderWidth: 2, borderColor: colors.card },
-  tick: { fontSize: 11, color: colors.muted, marginLeft: 4 },
+  tick: { fontSize: 11, color: colors.bubbleMeta, marginLeft: 4 },
   button: { height: 48, borderRadius: radius.md, alignItems: "center", justifyContent: "center", paddingHorizontal: space(4) },
   buttonText: { fontSize: 16, fontWeight: "600" },
   label: { fontSize: 13, color: colors.muted, fontWeight: "600" },
-  input: { height: 48, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: space(3), fontSize: 16, color: colors.text },
+  input: { height: 48, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.elevated, paddingHorizontal: space(3), fontSize: 16, color: colors.text },
   error: { color: colors.danger, fontSize: 13 },
   hint: { color: colors.muted, fontSize: 13 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: space(8), gap: space(2) },

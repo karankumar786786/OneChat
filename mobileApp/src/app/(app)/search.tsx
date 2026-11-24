@@ -42,14 +42,14 @@ export default function Search() {
       <View style={{ padding: space(4) }}>
         <Field value={q} onChangeText={setQ} placeholder="Search by name or @username" autoCapitalize="none" autoCorrect={false} autoFocus />
       </View>
-      {loading ? <ActivityIndicator color={colors.primary} /> : null}
+      {loading ? <ActivityIndicator color={colors.accent} /> : null}
       <FlatList
         data={results}
         keyExtractor={(u) => u.id}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={q.trim() && !loading ? <Empty title="Nobody found" subtitle="Try their name, or @ and the start of their username." /> : undefined}
         renderItem={({ item }) => (
-          <Pressable style={({ pressed }) => [styles.row, pressed && { backgroundColor: "#EEF0F5" }]} onPress={() => open(item)}>
+          <Pressable style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.pressed }]} onPress={() => open(item)}>
             <Pressable onPress={() => router.push(`/user/${item.id}`)} hitSlop={4}>
               <Avatar name={item.displayName || item.username} url={item.avatarUrl} cacheKey={item.avatarFileId} />
             </Pressable>
@@ -67,7 +67,7 @@ export default function Search() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  name: { fontSize: 16, fontWeight: "600", color: colors.text },
-  username: { fontSize: 14, color: colors.primary },
-  about: { fontSize: 13, color: colors.muted },
+  name: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.text },
+  username: { fontSize: 14, lineHeight: 19, color: colors.accent },
+  about: { fontSize: 13, lineHeight: 18, color: colors.muted },
 });
