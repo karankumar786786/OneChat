@@ -13,12 +13,6 @@ export async function authenticateToken(token: string | undefined) {
   return claims;
 }
 
-
-
-
-
-
-
 export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   const header = c.req.header("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
